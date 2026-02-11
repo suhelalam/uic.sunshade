@@ -3,6 +3,7 @@
  * Location field searches by building name or address; only UIC campus locations are allowed.
  */
 
+import * as React from "react";
 import type { UicBuildingSuggestion } from "@/lib/uicBuildings";
 
 type Props = {
@@ -40,6 +41,19 @@ export function EventForm({
   onExtraInfoChange,
   onSubmit,
 }: Props) {
+  const dateInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [dateFocused, setDateFocused] = React.useState(false);
+  const [showSuggestions, setShowSuggestions] = React.useState(true);
+
+  React.useEffect(() => {
+    // If parent clears suggestions, hide locally
+    if (buildingSuggestions.length === 0) setShowSuggestions(false);
+  }, [buildingSuggestions.length]);
+
+  const handleConfirmDate = () => {
+    dateInputRef.current?.blur();
+    setDateFocused(false);
+  };
   return (
     <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:rounded-2xl sm:p-6">
       <div className="text-base font-semibold text-zinc-900">Add event</div>
@@ -61,12 +75,26 @@ export function EventForm({
           <label className="text-xs font-medium text-zinc-600">
             Date & time
           </label>
-          <input
-            type="datetime-local"
-            value={dateTime}
-            onChange={(e) => onDateTimeChange(e.target.value)}
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
-          />
+          <div className="mt-1.5 flex items-center gap-2">
+            <input
+              ref={dateInputRef}
+              type="datetime-local"
+              value={dateTime}
+              onChange={(e) => onDateTimeChange(e.target.value)}
+              onFocus={() => setDateFocused(true)}
+              onBlur={() => setDateFocused(false)}
+              className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            />
+            {(dateFocused || dateTime) && (
+              <button
+                type="button"
+                onClick={handleConfirmDate}
+                className="rounded-md bg-zinc-50 px-3 py-1 text-sm text-zinc-700 shadow-sm"
+              >
+                Set
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="relative">
@@ -75,7 +103,10 @@ export function EventForm({
           </label>
           <input
             value={address}
-            onChange={(e) => onAddressChange(e.target.value)}
+            onChange={(e) => {
+              onAddressChange(e.target.value);
+              setShowSuggestions(true);
+            }}
             placeholder="Search for a UIC building"
             className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
           />
@@ -85,13 +116,16 @@ export function EventForm({
             </div>
           ) : null}
 
-          {buildingSuggestions.length > 0 ? (
+          {buildingSuggestions.length > 0 && showSuggestions ? (
             <div className="absolute z-20 mt-1.5 max-h-60 w-full overflow-auto rounded-xl border border-zinc-200 bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
               {buildingSuggestions.map((s) => (
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => onBuildingSelect(s)}
+                  onClick={() => {
+                    onBuildingSelect(s);
+                    setShowSuggestions(false);
+                  }}
                   className="min-h-[44px] w-full px-4 py-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 active:bg-zinc-100 sm:py-2.5 sm:text-xs"
                 >
                   <span className="font-medium">{s.name}</span>
