@@ -88,15 +88,26 @@ export function EventsMap({
   const currentLocationMarkerRef = React.useRef<{ marker: any; markerRoot: ReturnType<typeof createRoot> } | null>(null);
   const geocoderRef = React.useRef<any>(null);
 
+  // Track when the Mapbox map has finished initializing
+  const [isMapReady, setIsMapReady] = React.useState(false);
+
   const token = accessToken?.trim();
   const hasToken = Boolean(token);
+
+  // Keep a ref to the latest events so callbacks registered once (like map 'load')
+  // can always access up-to-date event data without stale closures.
+  const eventsRef = React.useRef<MapEvent[]>(events);
+  React.useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
 
   const syncEventMarkers = React.useCallback(() => {
     const map = mapRef.current;
     const mapboxgl = mapboxglRef.current;
     if (!map || !mapboxgl) return;
 
-    const nextIds = new Set(events.map((e) => e.id));
+    const currentEvents = eventsRef.current;
+    const nextIds = new Set(currentEvents.map((e) => e.id));
 
     // Remove stale
     for (const [id, { marker, popupRoot, markerRoot }] of eventMarkersRef.current.entries()) {
@@ -121,7 +132,13 @@ export function EventsMap({
     }
 
     // Add/update
-    for (const e of events) {
+    for (const e of currentEvents) {
+      // Validate location data before using it (defensive for Firestore shape differences)
+      if (!e?.location || typeof e.location.lng !== "number" || typeof e.location.lat !== "number") {
+        // eslint-disable-next-line no-console
+        console.warn("Skipping event with invalid location:", e);
+        continue;
+      }
       const existing = eventMarkersRef.current.get(e.id);
       if (existing) {
         existing.marker.setLngLat([e.location.lng, e.location.lat]);
@@ -281,8 +298,14 @@ export function EventsMap({
     syncEventMarkers();
   }, [hasToken, events, syncEventMarkers]);
 
+  // Ensure we sync markers once the map is fully ready — helps when events load
+  // before the map has finished initializing (e.g., on page refresh).
+  React.useEffect(() => {
+    if (!hasToken || !isMapReady) return;
+    syncEventMarkers();
+  }, [hasToken, isMapReady, events, syncEventMarkers]);
+
   // Current location marker (navy blue) at selectedLocation – create once when map is ready
-  const [isMapReady, setIsMapReady] = React.useState(false);
   React.useEffect(() => {
     if (!mapRef.current || !isMapReady || !hasToken || currentLocationMarkerRef.current) return;
     const map = mapRef.current;
