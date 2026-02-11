@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sunshade
 
-## Getting Started
+Interactive event map for the UIC campus. Add, filter, and view events on a Mapbox map. Events can only be created at UIC building locations.
 
-First, run the development server:
+## Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Map** – Mapbox map with event markers; click markers to see details
+- **Add events** – Form with UIC building search (name or address); only campus locations allowed
+- **Filter events** – By date (All, Today, This week, Next week, This month, Pick a date) and distance
+- **Past events** – Separate section listing past events
+- **Use my location** – Get your location for distance calculations
+- **Edit & delete** – Edit events in a modal; delete with Yes/No confirmation
+
+## Quick start
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Add your Mapbox token:
+   - Create `.env.local` in the project root
+   - Add: `NEXT_PUBLIC_MAPBOX_TOKEN=your_mapbox_public_token`
+
+3. Run the app:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000)
+
+## Project structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx    # Root layout, metadata, Inter font
+│   ├── page.tsx      # Main page: state + component wiring
+│   └── globals.css   # Tailwind, Mapbox CSS, design tokens
+├── components/
+│   ├── HeaderBar.tsx     # App title, token notice
+│   ├── EventForm.tsx     # Add-event form + UIC building search
+│   ├── EventsMap.tsx     # Mapbox map, markers, search, filter, "Use my location"
+│   ├── EventsFilter.tsx  # Date + distance filters (dropdown or inline)
+│   ├── EventsList.tsx    # Event cards with distance + edit button
+│   └── EventModal.tsx    # Event details modal, edit form, delete with confirmation
+└── lib/
+    ├── types.ts       # LngLat, MapEvent, FilterMode, etc.
+    ├── geo.ts         # Haversine distance (miles)
+    ├── geocode.ts     # Mapbox geocoding for UIC buildings
+    ├── filters.ts     # Event filtering by date and distance
+    └── uicBuildings.ts # UIC campus building list with addresses
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Component | Purpose |
+|-----------|---------|
+| **HeaderBar** | Top header with app title; shows token setup notice when Mapbox token is missing |
+| **EventForm** | Add-event form; location field searches UIC buildings by name or address |
+| **EventsMap** | Mapbox map, event markers with popups, search bar, "Use my location", filter dropdown |
+| **EventsFilter** | Date filters (All, Today, This week, …) and distance slider |
+| **EventsList** | List of event cards with distance from reference point and edit button |
+| **EventModal** | View/edit event details; delete with Yes/No confirmation |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Lib modules
 
-## Learn More
+| File | Purpose |
+|------|---------|
+| **types.ts** | Shared types: `LngLat`, `MapEvent`, `FilterMode`, `PickScope`, etc. |
+| **geo.ts** | `haversineMiles(a, b)` – distance between two coordinates in miles |
+| **geocode.ts** | `geocodeBuilding()` – Mapbox geocoding for UIC building names/addresses |
+| **filters.ts** | `filterEvents()` – filter by date range and distance; `getFilterModeLabel()` |
+| **uicBuildings.ts** | UIC building list with full addresses; `searchUicBuildings()`, `isUicBuilding()` |
 
-To learn more about Next.js, take a look at the following resources:
+## Data
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Events** – Stored in React state only (in-memory). To persist, add a backend (Firebase, API + DB, etc.).
+- **UIC buildings** – From UIC FIMWeb Campus Visitor Map; addresses for East Campus (60607), West Campus (60612), Law (60604), and 5525 Pulaski (60632).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Requirements
 
-## Deploy on Vercel
+- Node.js 18+
+- Mapbox account and public token
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `NEXT_PUBLIC_MAPBOX_TOKEN` – Mapbox public access token (required for map and geocoding)
+
+## Scripts
+
+- `npm run dev` – Start development server
+- `npm run build` – Build for production
+- `npm run start` – Run production build

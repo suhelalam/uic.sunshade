@@ -1,76 +1,87 @@
+/**
+ * Mapbox map with event markers, search bar, "Use my location" button, and filter dropdown.
+ * Renders Mapbox GL map, event pins with popups, and integrates EventsFilter.
+ */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import * as React from "react";
-
-export type LngLat = { lng: number; lat: number };
-
-export type MapEvent = {
-  id: string;
-  title: string;
-  dateISO: string; // ISO string
-  location: LngLat;
-  address?: string;
-  details?: string;
-  extraInfo?: string;
-};
+import type { FilterMode, LngLat, MapEvent, PickScope } from "@/lib/types";
+export type { LngLat, MapEvent } from "@/lib/types";
+import { EventsFilter } from "@/components/EventsFilter";
 
 type Props = {
   accessToken?: string;
   selectedLocation: LngLat;
   onSelectedLocationChange: (loc: LngLat) => void;
-  onSelectedAddressChange?: (address: string) => void;
   focusLocation?: LngLat | null;
   events: MapEvent[];
+  onEventSelect?: (event: MapEvent) => void;
+  filterOpen?: boolean;
+  onFilterToggle?: () => void;
+  filterMode?: FilterMode;
+  onFilterModeChange?: (mode: FilterMode) => void;
+  pickScope?: PickScope;
+  onPickScopeChange?: (scope: PickScope) => void;
+  pickYear?: number;
+  onPickYearChange?: (year: number) => void;
+  pickMonth?: number;
+  onPickMonthChange?: (month: number) => void;
+  pickDate?: string;
+  onPickDateChange?: (date: string) => void;
+  onPickDateApply?: () => void;
+  enableDistanceFilter?: boolean;
+  onEnableDistanceFilterChange?: (next: boolean) => void;
+  maxDistanceMiles?: number;
+  onMaxDistanceMilesChange?: (miles: number) => void;
+  totalShown?: number;
+  onUseMyLocation?: () => void;
+  isLocating?: boolean;
+  locationError?: string | null;
 };
 
-const DEFAULT_CENTER: LngLat = { lng: -87.6298, lat: 41.8781 }; // Chicago
+/** Default map center (Chicago) when no location is selected. */
+const DEFAULT_CENTER: LngLat = { lng: -87.6298, lat: 41.8781 };
 
 export function EventsMap({
   accessToken,
   selectedLocation,
   onSelectedLocationChange,
-  onSelectedAddressChange,
   focusLocation,
   events,
+  onEventSelect,
+  filterOpen = false,
+  onFilterToggle,
+  filterMode = "all",
+  onFilterModeChange = () => {},
+  pickScope = "date",
+  onPickScopeChange = () => {},
+  pickYear = new Date().getFullYear(),
+  onPickYearChange = () => {},
+  pickMonth = new Date().getMonth() + 1,
+  onPickMonthChange = () => {},
+  pickDate = new Date().toISOString().slice(0, 10),
+  onPickDateChange = () => {},
+  onPickDateApply = () => {},
+  enableDistanceFilter = true,
+  onEnableDistanceFilterChange = () => {},
+  maxDistanceMiles = 5,
+  onMaxDistanceMilesChange = () => {},
+  totalShown = 0,
+  onUseMyLocation,
+  isLocating = false,
+  locationError = null,
 }: Props) {
   const mapElRef = React.useRef<HTMLDivElement | null>(null);
   const geocoderElRef = React.useRef<HTMLDivElement | null>(null);
 
   const mapRef = React.useRef<any>(null);
   const mapboxglRef = React.useRef<any>(null);
-  const selectionMarkerRef = React.useRef<any>(null);
   const eventMarkersRef = React.useRef<Map<string, any>>(new Map());
   const geocoderRef = React.useRef<any>(null);
 
   const token = accessToken?.trim();
   const hasToken = Boolean(token);
-
-  const upsertSelectionMarker = React.useCallback(
-    (loc: LngLat) => {
-      if (!mapRef.current || !mapboxglRef.current) return;
-      if (!selectionMarkerRef.current) {
-        const marker = new mapboxglRef.current.Marker({
-          color: "#2563eb",
-          draggable: true,
-        })
-          .setLngLat([loc.lng, loc.lat])
-          .addTo(mapRef.current);
-        marker.on("dragend", () => {
-          const ll = marker.getLngLat();
-          const next = { lng: ll.lng, lat: ll.lat };
-          onSelectedLocationChange(next);
-          if (hasToken) {
-            reverseGeocode(next, token, onSelectedAddressChange);
-          }
-        });
-        selectionMarkerRef.current = marker;
-      } else {
-        selectionMarkerRef.current.setLngLat([loc.lng, loc.lat]);
-      }
-    },
-    [hasToken, onSelectedAddressChange, onSelectedLocationChange, token]
-  );
 
   const syncEventMarkers = React.useCallback(() => {
     const map = mapRef.current;
@@ -97,25 +108,44 @@ export function EventsMap({
 
       const el = document.createElement("button");
       el.type = "button";
-      el.className =
-        "h-3.5 w-3.5 rounded-full border-2 border-white bg-rose-500 shadow-sm ring-1 ring-black/10";
+      el.className = "h-9 w-9";
+      el.style.cursor = "pointer";
+      el.innerHTML = `
+        <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true">
+          <path fill="#FF385C" d="M12 2c-3.87 0-7 3.13-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>
+          <circle cx="12" cy="9.5" r="2.1" fill="white"/>
+        </svg>
+      `;
       el.title = `${e.title} • ${new Date(e.dateISO).toLocaleString()}`;
 
-      const popup = new mapboxgl.Popup({ offset: 18 }).setHTML(
-        `<div style="font-size: 12px; line-height: 1.3;">
+      const popup = new mapboxgl.Popup({
+        offset: 14,
+        closeButton: false,
+        closeOnClick: false,
+      }).setHTML(
+        `<div style="font-size: 12px; line-height: 1.3; padding: 6px 8px; border-radius: 10px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.14);">
+          <div style="position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: white; transform: translateX(-50%) rotate(45deg); box-shadow: 0 8px 24px rgba(0,0,0,0.08);"></div>
           <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(
             e.title
           )}</div>
           <div style="color: rgba(0,0,0,0.72);">${escapeHtml(
             new Date(e.dateISO).toLocaleString()
           )}</div>
+          <div style="color: rgba(0,0,0,0.6); margin-top: 6px;">
+            ${escapeHtml(e.address ?? `${e.location.lat.toFixed(5)}, ${e.location.lng.toFixed(5)}`)}
+          </div>
           ${
-            e.address
+            e.details
               ? `<div style="color: rgba(0,0,0,0.6); margin-top: 6px;">${escapeHtml(
-                  e.address
+                  e.details
                 )}</div>`
               : ""
           }
+          <button data-event-id="${escapeHtml(
+            e.id
+          )}" style="margin-top: 8px; font-size: 11px; font-weight: 600; color: #FF385C; background: transparent; border: 0; padding: 0; cursor: pointer;">
+            View details
+          </button>
         </div>`
       );
 
@@ -123,6 +153,31 @@ export function EventsMap({
         .setLngLat([e.location.lng, e.location.lat])
         .setPopup(popup)
         .addTo(map);
+      marker.getElement().addEventListener("click", (ev: Event) => {
+        ev.stopPropagation();
+        marker.togglePopup();
+      });
+
+      if (onEventSelect) {
+        popup.on("open", () => {
+          const popupEl = popup.getElement() as HTMLElement | null;
+          if (!popupEl) return;
+          const safeId = e.id.replaceAll('"', '\\"');
+          const btn = popupEl.querySelector<HTMLButtonElement>(
+            `[data-event-id="${safeId}"]`
+          );
+          if (!btn) return;
+          const handler = (ev: Event) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            onEventSelect(e);
+          };
+          // Defer binding to avoid the marker click triggering it immediately.
+          setTimeout(() => {
+            btn.addEventListener("click", handler, { once: true });
+          }, 0);
+        });
+      }
 
       eventMarkersRef.current.set(e.id, marker);
     }
@@ -164,16 +219,7 @@ export function EventsMap({
       map.addControl(new mapboxgl.NavigationControl({ showCompass: true }));
       map.addControl(new mapboxgl.FullscreenControl());
 
-      map.on("click", (ev: any) => {
-        const next = { lng: ev.lngLat.lng, lat: ev.lngLat.lat };
-        onSelectedLocationChange(next);
-        if (hasToken) {
-          reverseGeocode(next, token, onSelectedAddressChange);
-        }
-      });
-
       map.on("load", () => {
-        upsertSelectionMarker(selectedLocation);
         syncEventMarkers();
       });
 
@@ -196,10 +242,6 @@ export function EventsMap({
           if (!Array.isArray(center) || center.length < 2) return;
           const loc = { lng: center[0], lat: center[1] } satisfies LngLat;
           onSelectedLocationChange(loc);
-          const placeName = res?.result?.place_name;
-          if (placeName && onSelectedAddressChange) {
-            onSelectedAddressChange(placeName);
-          }
           map.flyTo({ center, zoom: Math.max(map.getZoom(), 14) });
         });
 
@@ -217,7 +259,6 @@ export function EventsMap({
         mapRef.current?.remove?.();
       } catch {}
       mapRef.current = null;
-      selectionMarkerRef.current = null;
       for (const marker of eventMarkers.values()) {
         try {
           marker.remove();
@@ -227,12 +268,6 @@ export function EventsMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasToken]);
-
-  // Keep selection marker in sync
-  React.useEffect(() => {
-    if (!hasToken) return;
-    upsertSelectionMarker(selectedLocation);
-  }, [hasToken, selectedLocation, upsertSelectionMarker]);
 
   React.useEffect(() => {
     if (!hasToken) return;
@@ -261,7 +296,7 @@ export function EventsMap({
 
   if (!hasToken) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
         <div className="text-sm font-semibold text-zinc-900">
           Missing Mapbox token
         </div>
@@ -278,23 +313,72 @@ export function EventsMap({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold text-zinc-900">Map</div>
-          <div className="truncate text-xs text-zinc-500">
-            Click to drop pin • Drag pin to adjust • Search to auto-place
-          </div>
-        </div>
-        <div className="w-full sm:w-[420px]">
+    <div className="rounded-2xl border border-zinc-200/60 bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="min-w-0 flex-1 sm:max-w-[420px]">
           <div ref={geocoderElRef} />
         </div>
+        {onUseMyLocation ? (
+          <button
+            type="button"
+            onClick={onUseMyLocation}
+            disabled={isLocating}
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 disabled:opacity-60"
+          >
+            {isLocating ? (
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+                Locating…
+              </>
+            ) : (
+              <>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                Use my location
+              </>
+            )}
+          </button>
+        ) : null}
+        {onFilterToggle ? (
+          <EventsFilter
+            variant="dropdown"
+            filterOpen={filterOpen}
+            onToggle={onFilterToggle}
+            filterMode={filterMode}
+            onFilterModeChange={onFilterModeChange}
+            pickScope={pickScope}
+            onPickScopeChange={onPickScopeChange}
+            pickYear={pickYear}
+            onPickYearChange={onPickYearChange}
+            pickMonth={pickMonth}
+            onPickMonthChange={onPickMonthChange}
+            pickDate={pickDate}
+            onPickDateChange={onPickDateChange}
+            onPickDateApply={onPickDateApply}
+            enableDistanceFilter={enableDistanceFilter}
+            onEnableDistanceFilterChange={onEnableDistanceFilterChange}
+            maxDistanceMiles={maxDistanceMiles}
+            onMaxDistanceMilesChange={onMaxDistanceMilesChange}
+            totalShown={totalShown}
+          />
+        ) : null}
       </div>
 
       <div className="mt-4">
         <div
           ref={mapElRef}
-          className="h-[520px] w-full overflow-hidden rounded-xl bg-zinc-100"
+          className="h-[520px] w-full overflow-hidden rounded-xl bg-zinc-100/80 ring-1 ring-zinc-200/50"
         />
       </div>
 
@@ -303,12 +387,16 @@ export function EventsMap({
           Selected: {selectedLocation.lat.toFixed(5)},{" "}
           {selectedLocation.lng.toFixed(5)}
         </div>
+        {locationError ? (
+          <span className="text-rose-600">{locationError}</span>
+        ) : null}
         <div className="tabular-nums">{events.length} event(s) shown</div>
       </div>
     </div>
   );
 }
 
+/** Escape HTML for safe insertion into popup markup. */
 function escapeHtml(s: string) {
   return s
     .replaceAll("&", "&amp;")
@@ -318,21 +406,3 @@ function escapeHtml(s: string) {
     .replaceAll("'", "&#039;");
 }
 
-async function reverseGeocode(
-  loc: LngLat,
-  token: string | undefined,
-  onAddressChange?: (address: string) => void
-) {
-  if (!token || !onAddressChange) return;
-  try {
-    const url =
-      "https://api.mapbox.com/geocoding/v5/mapbox.places/" +
-      encodeURIComponent(`${loc.lng},${loc.lat}`) +
-      `.json?access_token=${encodeURIComponent(token)}&limit=1`;
-    const res = await fetch(url);
-    if (!res.ok) return;
-    const data = await res.json();
-    const place = data?.features?.[0]?.place_name;
-    if (place) onAddressChange(place);
-  } catch {}
-}
