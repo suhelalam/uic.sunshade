@@ -3,6 +3,10 @@
  * Converts building names/addresses to coordinates for the map.
  */
 
+"use client";
+import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css";
+
+
 import type { AddressSuggestion } from "@/lib/types";
 import type { LngLat } from "@/lib/types";
 

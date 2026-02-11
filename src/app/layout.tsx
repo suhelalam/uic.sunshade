@@ -11,8 +11,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sunshade Events",
+  title: "UIC Sunshade",
   description: "Add and discover events on a map",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
+
 };
 
 export default function RootLayout({

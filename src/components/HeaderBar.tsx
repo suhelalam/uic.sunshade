@@ -1,7 +1,4 @@
-/**
- * Top page header with app title.
- * Shows a token setup notice when Mapbox token is missing.
- */
+import Image from "next/image";
 
 type Props = {
   accessToken?: string;
@@ -9,8 +6,18 @@ type Props = {
 
 export function HeaderBar({ accessToken }: Props) {
   return (
-    <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
+    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex items-center gap-3">
+        {/* Logo */}
+        <Image
+          src="/logo.png"
+          alt="Sunshade logo"
+          width={48}
+          height={48}
+          className="h-12 w-12 object-contain"
+        />
+
+        {/* Title */}
         <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">
           Sunshade
         </h1>
@@ -21,7 +28,10 @@ export function HeaderBar({ accessToken }: Props) {
           <div className="font-medium">Token setup</div>
           <div className="mt-1">
             Add your Mapbox public token to{" "}
-            <code className="rounded bg-white px-1.5 py-0.5">.env.local</code> as{" "}
+            <code className="rounded bg-white px-1.5 py-0.5">
+              .env.local
+            </code>{" "}
+            as{" "}
             <code className="rounded bg-white px-1.5 py-0.5">
               NEXT_PUBLIC_MAPBOX_TOKEN=...
             </code>
