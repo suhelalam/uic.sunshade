@@ -12,6 +12,7 @@ type Props = {
   address: string;
   details: string;
   extraInfo: string;
+  organizer: string;
   formError: string;
   buildingSuggestions: UicBuildingSuggestion[];
   isResolvingLocation: boolean;
@@ -21,6 +22,7 @@ type Props = {
   onBuildingSelect: (suggestion: UicBuildingSuggestion) => void;
   onDetailsChange: (value: string) => void;
   onExtraInfoChange: (value: string) => void;
+  onOrganizerChange: (value: string) => void;
   onSubmit: (ev: React.FormEvent) => void;
 };
 
@@ -30,6 +32,7 @@ export function EventForm({
   address,
   details,
   extraInfo,
+  organizer,
   formError,
   buildingSuggestions,
   isResolvingLocation,
@@ -39,6 +42,7 @@ export function EventForm({
   onBuildingSelect,
   onDetailsChange,
   onExtraInfoChange,
+  onOrganizerChange,
   onSubmit,
 }: Props) {
   const dateInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -82,14 +86,13 @@ export function EventForm({
               value={dateTime}
               onChange={(e) => onDateTimeChange(e.target.value)}
               onFocus={() => setDateFocused(true)}
-              onBlur={() => setDateFocused(false)}
               className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
             />
-            {(dateFocused || dateTime) && (
+            {dateFocused && (
               <button
                 type="button"
                 onClick={handleConfirmDate}
-                className="rounded-md bg-zinc-50 px-3 py-1 text-sm text-zinc-700 shadow-sm"
+                className="rounded-md bg-zinc-50 px-3 py-1 text-sm text-zinc-700 shadow-sm hover:bg-zinc-100"
               >
                 Set
               </button>
@@ -157,6 +160,16 @@ export function EventForm({
             value={extraInfo}
             onChange={(e) => onExtraInfoChange(e.target.value)}
             placeholder="Dress code, parking, RSVP, etc."
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-zinc-600">Organizer</label>
+          <input
+            value={organizer}
+            onChange={(e) => onOrganizerChange(e.target.value)}
+            placeholder="e.g. Student Org Name"
             className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
           />
         </div>

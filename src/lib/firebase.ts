@@ -50,6 +50,7 @@ export type FirestoreEvent = {
   address?: string;
   details?: string;
   extraInfo?: string;
+  organizer?: string;
 };
 
 type MapEventWithId = MapEvent & { id: string };

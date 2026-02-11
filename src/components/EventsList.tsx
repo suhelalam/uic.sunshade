@@ -47,6 +47,11 @@ export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props
                     {e.address}
                   </div>
                 ) : null}
+                {e.organizer ? (
+                  <div className="mt-1 truncate text-xs text-zinc-600 font-medium">
+                    by {e.organizer}
+                  </div>
+                ) : null}
               </button>
               <div className="flex flex-col items-end gap-2">
                 <div className="text-xs font-medium tabular-nums text-zinc-700">

@@ -15,12 +15,14 @@ type Props = {
   editAddress: string;
   editDetails: string;
   editExtraInfo: string;
+  editOrganizer: string;
   editError: string;
   onEditTitleChange: (value: string) => void;
   onEditDateTimeChange: (value: string) => void;
   onEditAddressChange: (value: string) => void;
   onEditDetailsChange: (value: string) => void;
   onEditExtraInfoChange: (value: string) => void;
+  onEditOrganizerChange: (value: string) => void;
   onClose: () => void;
   onStartEdit: () => void;
   onCancelEdit: () => void;
@@ -36,12 +38,14 @@ export function EventModal({
   editAddress,
   editDetails,
   editExtraInfo,
+  editOrganizer,
   editError,
   onEditTitleChange,
   onEditDateTimeChange,
   onEditAddressChange,
   onEditDetailsChange,
   onEditExtraInfoChange,
+  onEditOrganizerChange,
   onClose,
   onStartEdit,
   onCancelEdit,
@@ -101,6 +105,12 @@ export function EventModal({
               <div>{event.extraInfo}</div>
             </div>
           ) : null}
+          {event.organizer ? (
+            <div>
+              <div className="text-xs font-medium text-zinc-500">Organizer</div>
+              <div>{event.organizer}</div>
+            </div>
+          ) : null}
         </div>
 
         {isEditing ? (
@@ -150,6 +160,16 @@ export function EventModal({
               <input
                 value={editExtraInfo}
                 onChange={(e) => onEditExtraInfoChange(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-zinc-700">
+                Organizer
+              </label>
+              <input
+                value={editOrganizer}
+                onChange={(e) => onEditOrganizerChange(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
               />
             </div>

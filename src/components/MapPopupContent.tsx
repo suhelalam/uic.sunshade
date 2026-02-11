@@ -28,6 +28,11 @@ export function MapPopupContent({ event, onViewDetails }: Props) {
         {event.details ? (
           <div className="mt-1.5 text-zinc-500">{event.details}</div>
         ) : null}
+        {event.organizer ? (
+          <div className="mt-1.5 text-zinc-600 font-medium text-[11px]">
+            by {event.organizer}
+          </div>
+        ) : null}
         <button
           type="button"
           onClick={(e) => {

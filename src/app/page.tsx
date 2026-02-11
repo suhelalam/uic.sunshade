@@ -125,6 +125,7 @@ export default function Home() {
   );
   const [newDetails, setNewDetails] = React.useState<string>("");
   const [newExtraInfo, setNewExtraInfo] = React.useState<string>("");
+  const [newOrganizer, setNewOrganizer] = React.useState<string>("");
   const [formError, setFormError] = React.useState<string>("");
   const [activeEvent, setActiveEvent] = React.useState<MapEvent | null>(null);
   const [isEditingEvent, setIsEditingEvent] = React.useState(false);
@@ -133,6 +134,7 @@ export default function Home() {
   const [editAddress, setEditAddress] = React.useState("");
   const [editDetails, setEditDetails] = React.useState("");
   const [editExtraInfo, setEditExtraInfo] = React.useState("");
+  const [editOrganizer, setEditOrganizer] = React.useState("");
   const [editError, setEditError] = React.useState("");
 
   const [isResolvingLocation, setIsResolvingLocation] = React.useState(false);
@@ -158,6 +160,7 @@ export default function Home() {
           address: r.address,
           details: r.details,
           extraInfo: r.extraInfo,
+          organizer: r.organizer,
         })) as MapEvent[]
       );
     });
@@ -175,6 +178,7 @@ export default function Home() {
     setEditAddress(activeEvent.address ?? "");
     setEditDetails(activeEvent.details ?? "");
     setEditExtraInfo(activeEvent.extraInfo ?? "");
+    setEditOrganizer(activeEvent.organizer ?? "");
     setEditError("");
   }, [activeEvent]);
 
@@ -252,6 +256,7 @@ export default function Home() {
       address,
       details: newDetails.trim() || undefined,
       extraInfo: newExtraInfo.trim() || undefined,
+      organizer: newOrganizer.trim() || undefined,
     }).catch(() => setFormError("Could not save event. Try again."));
     setNewTitle("");
     setNewDateTime("");
@@ -259,6 +264,7 @@ export default function Home() {
     setNewEventLocation(null);
     setNewDetails("");
     setNewExtraInfo("");
+    setNewOrganizer("");
   };
 
   const handleSaveEdit = (ev: React.FormEvent) => {
@@ -297,6 +303,7 @@ export default function Home() {
       address,
       details: editDetails.trim() || undefined,
       extraInfo: editExtraInfo.trim() || undefined,
+      organizer: editOrganizer.trim() || undefined,
     })
       .then(() => setIsEditingEvent(false))
       .catch(() => setEditError("Could not save changes. Try again."));
@@ -315,6 +322,7 @@ export default function Home() {
               address={newAddress}
               details={newDetails}
               extraInfo={newExtraInfo}
+              organizer={newOrganizer}
               formError={formError}
               buildingSuggestions={buildingSuggestions}
               isResolvingLocation={isResolvingLocation}
@@ -345,6 +353,7 @@ export default function Home() {
               }}
               onDetailsChange={setNewDetails}
               onExtraInfoChange={setNewExtraInfo}
+              onOrganizerChange={setNewOrganizer}
               onSubmit={handleAddEvent}
             />
           </aside>
@@ -444,12 +453,14 @@ export default function Home() {
             editAddress={editAddress}
             editDetails={editDetails}
             editExtraInfo={editExtraInfo}
+            editOrganizer={editOrganizer}
             editError={editError}
             onEditTitleChange={setEditTitle}
             onEditDateTimeChange={setEditDateTime}
             onEditAddressChange={setEditAddress}
             onEditDetailsChange={setEditDetails}
             onEditExtraInfoChange={setEditExtraInfo}
+            onEditOrganizerChange={setEditOrganizer}
             onClose={() => setActiveEvent(null)}
             onStartEdit={() => setIsEditingEvent(true)}
             onCancelEdit={() => setIsEditingEvent(false)}

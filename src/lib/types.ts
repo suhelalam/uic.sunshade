@@ -15,6 +15,7 @@ export type MapEvent = {
   address?: string;
   details?: string;
   extraInfo?: string;
+  organizer?: string;
 };
 
 /** Mapbox geocoder suggestion result. */
