@@ -20,6 +20,7 @@ import {
   type UicBuildingSuggestion,
 } from "@/lib/uicBuildings";
 import type { FilterMode, LngLat, MapEvent, PickScope } from "@/lib/types";
+import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from "@/lib/firebase";
 
 /** Default reference location (UIC campus) for distance calculations. */
 const DEFAULT_SELECTED: LngLat = { lng: -87.6477, lat: 41.8719 };
@@ -93,26 +94,7 @@ export default function Home() {
     );
   }, []);
 
-  const [events, setEvents] = React.useState<MapEvent[]>(() => [
-    {
-      id: "sample-1",
-      title: "Campus meetup",
-      dateISO: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-      location: { lng: -87.6482, lat: 41.8727 },
-      address: "Student Center East, 750 S Halsted St, Chicago, IL",
-      details: "Welcome meetup for new members. Snacks + quick icebreakers.",
-      extraInfo: "Bring a student ID for entry.",
-    },
-    {
-      id: "sample-2",
-      title: "Music night",
-      dateISO: new Date(Date.now() + 1000 * 60 * 60 * 24 * 3).toISOString(),
-      location: { lng: -87.6243, lat: 41.8796 },
-      address: "Millennium Park, Chicago, IL",
-      details: "Live performances and local food vendors.",
-      extraInfo: "Outdoor event. Dress warm.",
-    },
-  ]);
+  const [events, setEvents] = React.useState<MapEvent[]>([]);
 
   // Filters
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -163,6 +145,24 @@ export default function Home() {
   React.useEffect(() => {
     setPickDateApplied(null);
   }, [pickDate, pickScope]);
+
+  // Subscribe to Firestore events collection
+  React.useEffect(() => {
+    const unsub = subscribeToEvents((rows) => {
+      setEvents(
+        rows.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          dateISO: r.dateISO,
+          location: r.location,
+          address: r.address,
+          details: r.details,
+          extraInfo: r.extraInfo,
+        })) as MapEvent[]
+      );
+    });
+    return () => unsub();
+  }, []);
 
   React.useEffect(() => {
     if (!activeEvent) {
@@ -244,18 +244,15 @@ export default function Home() {
       return;
     }
 
-    setEvents((prev) => [
-      {
-        id: `evt-${crypto.randomUUID()}`,
-        title,
-        dateISO: date.toISOString(),
-        location: newEventLocation,
-        address,
-        details: newDetails.trim() || undefined,
-        extraInfo: newExtraInfo.trim() || undefined,
-      },
-      ...prev,
-    ]);
+    // Persist to Firestore; subscription will update local state
+    void createEvent({
+      title,
+      dateISO: date.toISOString(),
+      location: newEventLocation,
+      address,
+      details: newDetails.trim() || undefined,
+      extraInfo: newExtraInfo.trim() || undefined,
+    }).catch(() => setFormError("Could not save event. Try again."));
     setNewTitle("");
     setNewDateTime("");
     setNewAddress("");
@@ -293,21 +290,16 @@ export default function Home() {
       return;
     }
 
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === activeEvent.id
-          ? {
-              ...e,
-              title,
-              dateISO: date.toISOString(),
-              address,
-              details: editDetails.trim() || undefined,
-              extraInfo: editExtraInfo.trim() || undefined,
-            }
-          : e
-      )
-    );
-    setIsEditingEvent(false);
+    // Update in Firestore; subscription will update local state
+    void updateEvent(activeEvent.id, {
+      title,
+      dateISO: date.toISOString(),
+      address,
+      details: editDetails.trim() || undefined,
+      extraInfo: editExtraInfo.trim() || undefined,
+    })
+      .then(() => setIsEditingEvent(false))
+      .catch(() => setEditError("Could not save changes. Try again."));
   };
 
   return (
@@ -463,8 +455,7 @@ export default function Home() {
             onCancelEdit={() => setIsEditingEvent(false)}
             onSaveEdit={handleSaveEdit}
             onDelete={() => {
-              setEvents((prev) => prev.filter((e) => e.id !== activeEvent!.id));
-              setActiveEvent(null);
+              void deleteEvent(activeEvent!.id).then(() => setActiveEvent(null));
             }}
           />
         ) : null}

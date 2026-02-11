@@ -102,10 +102,18 @@ export function EventsMap({
     for (const [id, { marker, popupRoot, markerRoot }] of eventMarkersRef.current.entries()) {
       if (!nextIds.has(id)) {
         try {
-          popupRoot.unmount();
+          queueMicrotask(() => {
+            try {
+              popupRoot.unmount();
+            } catch {}
+          });
         } catch {}
         try {
-          markerRoot.unmount();
+          queueMicrotask(() => {
+            try {
+              markerRoot.unmount();
+            } catch {}
+          });
         } catch {}
         marker.remove();
         eventMarkersRef.current.delete(id);
@@ -236,10 +244,18 @@ export function EventsMap({
       mapRef.current = null;
       for (const { marker, popupRoot, markerRoot } of eventMarkers.values()) {
         try {
-          popupRoot.unmount();
+          queueMicrotask(() => {
+            try {
+              popupRoot.unmount();
+            } catch {}
+          });
         } catch {}
         try {
-          markerRoot.unmount();
+          queueMicrotask(() => {
+            try {
+              markerRoot.unmount();
+            } catch {}
+          });
         } catch {}
         try {
           marker.remove();
@@ -287,7 +303,11 @@ export function EventsMap({
 
     return () => {
       try {
-        currentLocationMarkerRef.current?.markerRoot.unmount();
+        queueMicrotask(() => {
+          try {
+            currentLocationMarkerRef.current?.markerRoot.unmount();
+          } catch {}
+        });
       } catch {}
       try {
         currentLocationMarkerRef.current?.marker.remove();
