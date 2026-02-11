@@ -321,8 +321,9 @@ export function EventsFilter({
         <button
           type="button"
           onClick={onToggle}
-          className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 hover:border-zinc-300"
+          className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 hover:border-zinc-300 sm:min-h-0 sm:px-3 sm:py-2"
           title={`Filter: ${getFilterModeLabel(filterMode)}`}
+          aria-label={`Filter: ${getFilterModeLabel(filterMode)}`}
         >
           <span className="text-[#FF385C]">{filterIcon("md")}</span>
           <span className="text-xs font-medium text-zinc-700">Filters</span>
@@ -334,7 +335,7 @@ export function EventsFilter({
               aria-hidden
               onClick={onToggle}
             />
-            <div className="absolute right-0 top-full z-20 mt-2 min-w-[280px] rounded-xl border border-zinc-200/80 bg-white p-3 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+            <div className="absolute right-0 top-full z-20 mt-2 w-[min(280px,calc(100vw-1.5rem))] min-w-0 max-w-[calc(100vw-1.5rem)] rounded-xl border border-zinc-200/80 bg-white p-3 shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
               <FilterContent
                 filterMode={filterMode}
                 onFilterModeChange={onFilterModeChange}

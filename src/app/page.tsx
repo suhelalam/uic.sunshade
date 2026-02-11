@@ -34,31 +34,62 @@ export default function Home() {
   const [locationError, setLocationError] = React.useState<string | null>(null);
 
   const handleUseMyLocation = React.useCallback(() => {
-    if (!navigator.geolocation) {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      setLocationError(
+        "Location requires HTTPS. Use https:// or run on localhost."
+      );
       return;
     }
     setLocationError(null);
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc: LngLat = {
-          lng: pos.coords.longitude,
-          lat: pos.coords.latitude,
-        };
-        setSelectedLocation(loc);
-        setFocusLocation(loc);
-        setIsLocating(false);
-      },
-      (err) => {
-        setIsLocating(false);
-        setLocationError(
-          err.code === 1
-            ? "Location access denied."
-            : "Could not get your location."
+
+    const onSuccess = (pos: GeolocationPosition) => {
+      const loc: LngLat = {
+        lng: pos.coords.longitude,
+        lat: pos.coords.latitude,
+      };
+      setSelectedLocation(loc);
+      setFocusLocation(loc);
+      setIsLocating(false);
+    };
+
+    const onError = (err: GeolocationPositionError) => {
+      setIsLocating(false);
+      if (err.code === 1) {
+        setLocationError("Location access denied. Allow location in browser.");
+      } else if (err.code === 2) {
+        setLocationError("Location unavailable. Check GPS/Wi‑Fi and try again.");
+      } else if (err.code === 3) {
+        setLocationError("Location timed out. Retrying with low accuracy…");
+        navigator.geolocation.getCurrentPosition(
+          onSuccess,
+          (retryErr) => {
+            setIsLocating(false);
+            setLocationError(
+              retryErr.code === 1
+                ? "Location access denied."
+                : "Could not get your location. Try again later."
+            );
+          },
+          { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 }
         );
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+      } else {
+        setLocationError("Could not get your location. Try again later.");
+      }
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onSuccess,
+      onError,
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 60000,
+      }
     );
   }, []);
 
@@ -280,11 +311,11 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa]">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#fafafa] overflow-x-hidden">
+      <div className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(2rem,env(safe-area-inset-bottom))]">
         <HeaderBar accessToken={accessToken} />
 
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[360px_1fr]">
           <aside className="space-y-6">
             <EventForm
               title={newTitle}
@@ -327,7 +358,7 @@ export default function Home() {
           </aside>
 
           <main className="min-w-0">
-            <div className="rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+            <div className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
               <div className="mt-0">
                 <EventsMap
                   accessToken={accessToken}

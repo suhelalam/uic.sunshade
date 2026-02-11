@@ -6,25 +6,25 @@ type Props = {
 
 export function HeaderBar({ accessToken }: Props) {
   return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="flex items-center gap-3">
+    <header className="mb-5 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Logo */}
         <Image
           src="/logo.png"
           alt="Sunshade logo"
           width={48}
           height={48}
-          className="h-12 w-12 object-contain"
+          className="h-10 w-10 shrink-0 object-contain sm:h-12 sm:w-12"
         />
 
         {/* Title */}
-        <h1 className="text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-4xl lg:text-5xl">
           Sunshade
         </h1>
       </div>
 
       {!accessToken ? (
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-3 text-xs text-zinc-600 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 text-[11px] text-zinc-600 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:rounded-2xl sm:px-4 sm:py-3 sm:text-xs">
           <div className="font-medium">Token setup</div>
           <div className="mt-1">
             Add your Mapbox public token to{" "}

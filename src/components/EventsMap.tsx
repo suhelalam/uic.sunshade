@@ -6,9 +6,13 @@
 "use client";
 
 import * as React from "react";
+import { createRoot } from "react-dom/client";
 import type { FilterMode, LngLat, MapEvent, PickScope } from "@/lib/types";
 export type { LngLat, MapEvent } from "@/lib/types";
+import { CurrentLocationMarker } from "@/components/CurrentLocationMarker";
 import { EventsFilter } from "@/components/EventsFilter";
+import { MapMarkerPin } from "@/components/MapMarkerPin";
+import { MapPopupContent } from "@/components/MapPopupContent";
 
 type Props = {
   accessToken?: string;
@@ -77,7 +81,11 @@ export function EventsMap({
 
   const mapRef = React.useRef<any>(null);
   const mapboxglRef = React.useRef<any>(null);
-  const eventMarkersRef = React.useRef<Map<string, any>>(new Map());
+  /** Maps event id to { marker, popupRoot, markerRoot } for cleanup. */
+  const eventMarkersRef = React.useRef<
+    Map<string, { marker: any; popupRoot: ReturnType<typeof createRoot>; markerRoot: ReturnType<typeof createRoot> }>
+  >(new Map());
+  const currentLocationMarkerRef = React.useRef<{ marker: any; markerRoot: ReturnType<typeof createRoot> } | null>(null);
   const geocoderRef = React.useRef<any>(null);
 
   const token = accessToken?.trim();
@@ -91,8 +99,14 @@ export function EventsMap({
     const nextIds = new Set(events.map((e) => e.id));
 
     // Remove stale
-    for (const [id, marker] of eventMarkersRef.current.entries()) {
+    for (const [id, { marker, popupRoot, markerRoot }] of eventMarkersRef.current.entries()) {
       if (!nextIds.has(id)) {
+        try {
+          popupRoot.unmount();
+        } catch {}
+        try {
+          markerRoot.unmount();
+        } catch {}
         marker.remove();
         eventMarkersRef.current.delete(id);
       }
@@ -102,54 +116,35 @@ export function EventsMap({
     for (const e of events) {
       const existing = eventMarkersRef.current.get(e.id);
       if (existing) {
-        existing.setLngLat([e.location.lng, e.location.lat]);
+        existing.marker.setLngLat([e.location.lng, e.location.lat]);
         continue;
       }
 
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = "h-9 w-9";
-      el.style.cursor = "pointer";
-      el.innerHTML = `
-        <svg viewBox="0 0 24 24" width="36" height="36" aria-hidden="true">
-          <path fill="#FF385C" d="M12 2c-3.87 0-7 3.13-7 7 0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/>
-          <circle cx="12" cy="9.5" r="2.1" fill="white"/>
-        </svg>
-      `;
-      el.title = `${e.title} • ${new Date(e.dateISO).toLocaleString()}`;
+      // Marker button element (Mapbox requires DOM element; render React pin into it)
+      const markerEl = document.createElement("button");
+      markerEl.type = "button";
+      markerEl.className = "h-9 w-9 cursor-pointer";
+      markerEl.title = `${e.title} • ${new Date(e.dateISO).toLocaleString()}`;
+      const markerRoot = createRoot(markerEl);
+      markerRoot.render(<MapMarkerPin />);
+
+      // Popup with React-rendered content
+      const popupContainer = document.createElement("div");
+      const popupRoot = createRoot(popupContainer);
+      popupRoot.render(
+        <MapPopupContent
+          event={e}
+          onViewDetails={() => onEventSelect?.(e)}
+        />
+      );
 
       const popup = new mapboxgl.Popup({
         offset: 14,
         closeButton: false,
         closeOnClick: false,
-      }).setHTML(
-        `<div style="font-size: 12px; line-height: 1.3; padding: 6px 8px; border-radius: 10px; background: white; box-shadow: 0 8px 24px rgba(0,0,0,0.14);">
-          <div style="position: absolute; left: 50%; bottom: -6px; width: 10px; height: 10px; background: white; transform: translateX(-50%) rotate(45deg); box-shadow: 0 8px 24px rgba(0,0,0,0.08);"></div>
-          <div style="font-weight: 600; margin-bottom: 4px;">${escapeHtml(
-            e.title
-          )}</div>
-          <div style="color: rgba(0,0,0,0.72);">${escapeHtml(
-            new Date(e.dateISO).toLocaleString()
-          )}</div>
-          <div style="color: rgba(0,0,0,0.6); margin-top: 6px;">
-            ${escapeHtml(e.address ?? `${e.location.lat.toFixed(5)}, ${e.location.lng.toFixed(5)}`)}
-          </div>
-          ${
-            e.details
-              ? `<div style="color: rgba(0,0,0,0.6); margin-top: 6px;">${escapeHtml(
-                  e.details
-                )}</div>`
-              : ""
-          }
-          <button data-event-id="${escapeHtml(
-            e.id
-          )}" style="margin-top: 8px; font-size: 11px; font-weight: 600; color: #FF385C; background: transparent; border: 0; padding: 0; cursor: pointer;">
-            View details
-          </button>
-        </div>`
-      );
+      }).setDOMContent(popupContainer);
 
-      const marker = new mapboxgl.Marker({ element: el })
+      const marker = new mapboxgl.Marker({ element: markerEl })
         .setLngLat([e.location.lng, e.location.lat])
         .setPopup(popup)
         .addTo(map);
@@ -158,30 +153,9 @@ export function EventsMap({
         marker.togglePopup();
       });
 
-      if (onEventSelect) {
-        popup.on("open", () => {
-          const popupEl = popup.getElement() as HTMLElement | null;
-          if (!popupEl) return;
-          const safeId = e.id.replaceAll('"', '\\"');
-          const btn = popupEl.querySelector<HTMLButtonElement>(
-            `[data-event-id="${safeId}"]`
-          );
-          if (!btn) return;
-          const handler = (ev: Event) => {
-            ev.preventDefault();
-            ev.stopPropagation();
-            onEventSelect(e);
-          };
-          // Defer binding to avoid the marker click triggering it immediately.
-          setTimeout(() => {
-            btn.addEventListener("click", handler, { once: true });
-          }, 0);
-        });
-      }
-
-      eventMarkersRef.current.set(e.id, marker);
+      eventMarkersRef.current.set(e.id, { marker, popupRoot, markerRoot });
     }
-  }, [events]);
+  }, [events, onEventSelect]);
 
   // Init map + geocoder once
   React.useEffect(() => {
@@ -224,6 +198,7 @@ export function EventsMap({
       });
 
       mapRef.current = map;
+      if (!cancelled) setIsMapReady(true);
 
       if (geocoderElRef.current) {
         const geocoder = new MapboxGeocoder({
@@ -259,7 +234,13 @@ export function EventsMap({
         mapRef.current?.remove?.();
       } catch {}
       mapRef.current = null;
-      for (const marker of eventMarkers.values()) {
+      for (const { marker, popupRoot, markerRoot } of eventMarkers.values()) {
+        try {
+          popupRoot.unmount();
+        } catch {}
+        try {
+          markerRoot.unmount();
+        } catch {}
         try {
           marker.remove();
         } catch {}
@@ -283,6 +264,45 @@ export function EventsMap({
     if (!hasToken) return;
     syncEventMarkers();
   }, [hasToken, events, syncEventMarkers]);
+
+  // Current location marker (navy blue) at selectedLocation – create once when map is ready
+  const [isMapReady, setIsMapReady] = React.useState(false);
+  React.useEffect(() => {
+    if (!mapRef.current || !isMapReady || !hasToken || currentLocationMarkerRef.current) return;
+    const map = mapRef.current;
+    const mapboxgl = mapboxglRef.current;
+    if (!mapboxgl) return;
+
+    const markerEl = document.createElement("div");
+    markerEl.className = "cursor-default";
+    markerEl.title = "Your location (distance reference)";
+    const markerRoot = createRoot(markerEl);
+    markerRoot.render(<CurrentLocationMarker />);
+
+    const marker = new mapboxgl.Marker({ element: markerEl })
+      .setLngLat([selectedLocation.lng, selectedLocation.lat])
+      .addTo(map);
+
+    currentLocationMarkerRef.current = { marker, markerRoot };
+
+    return () => {
+      try {
+        currentLocationMarkerRef.current?.markerRoot.unmount();
+      } catch {}
+      try {
+        currentLocationMarkerRef.current?.marker.remove();
+      } catch {}
+      currentLocationMarkerRef.current = null;
+    };
+  }, [hasToken, isMapReady]);
+
+  // Update current location marker position when selectedLocation changes
+  React.useEffect(() => {
+    const entry = currentLocationMarkerRef.current;
+    if (entry?.marker) {
+      entry.marker.setLngLat([selectedLocation.lng, selectedLocation.lat]);
+    }
+  }, [selectedLocation.lng, selectedLocation.lat]);
 
   // Keep geocoder proximity roughly aligned with current selection
   React.useEffect(() => {
@@ -313,9 +333,9 @@ export function EventsMap({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200/60 bg-white p-5 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+    <div className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1 sm:max-w-[420px]">
+        <div className="min-w-0 flex-1 basis-full sm:basis-0 sm:max-w-[420px]">
           <div ref={geocoderElRef} />
         </div>
         {onUseMyLocation ? (
@@ -323,7 +343,7 @@ export function EventsMap({
             type="button"
             onClick={onUseMyLocation}
             disabled={isLocating}
-            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 disabled:opacity-60"
+            className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 disabled:opacity-60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-xs"
           >
             {isLocating ? (
               <>
@@ -375,17 +395,16 @@ export function EventsMap({
         ) : null}
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3 sm:mt-4">
         <div
           ref={mapElRef}
-          className="h-[520px] w-full overflow-hidden rounded-xl bg-zinc-100/80 ring-1 ring-zinc-200/50"
+          className="h-[260px] w-full overflow-hidden rounded-lg bg-zinc-100/80 ring-1 ring-zinc-200/50 sm:h-[380px] md:h-[520px] md:rounded-xl"
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-zinc-600">
-        <div className="tabular-nums">
-          Selected: {selectedLocation.lat.toFixed(5)},{" "}
-          {selectedLocation.lng.toFixed(5)}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600 sm:text-xs">
+        <div className="max-w-[50%] truncate tabular-nums sm:max-w-none">
+          Selected: {selectedLocation.lat.toFixed(5)}, {selectedLocation.lng.toFixed(5)}
         </div>
         {locationError ? (
           <span className="text-rose-600">{locationError}</span>
@@ -396,13 +415,4 @@ export function EventsMap({
   );
 }
 
-/** Escape HTML for safe insertion into popup markup. */
-function escapeHtml(s: string) {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 

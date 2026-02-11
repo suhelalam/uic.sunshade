@@ -42,7 +42,9 @@ src/
 │   ├── EventsMap.tsx     # Mapbox map, markers, search, filter, "Use my location"
 │   ├── EventsFilter.tsx  # Date + distance filters (dropdown or inline)
 │   ├── EventsList.tsx    # Event cards with distance + edit button
-│   └── EventModal.tsx    # Event details modal, edit form, delete with confirmation
+│   ├── EventModal.tsx    # Event details modal, edit form, delete with confirmation
+│   ├── MapPopupContent.tsx # React popup content for map markers
+│   └── MapMarkerPin.tsx  # React marker pin icon
 └── lib/
     ├── types.ts       # LngLat, MapEvent, FilterMode, etc.
     ├── geo.ts         # Haversine distance (miles)
@@ -61,6 +63,8 @@ src/
 | **EventsFilter** | Date filters (All, Today, This week, …) and distance slider |
 | **EventsList** | List of event cards with distance from reference point and edit button |
 | **EventModal** | View/edit event details; delete with Yes/No confirmation |
+| **MapPopupContent** | React component for marker popup (replaces HTML strings) |
+| **MapMarkerPin** | React component for marker pin icon |
 
 ## Lib modules
 

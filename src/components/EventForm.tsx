@@ -41,7 +41,7 @@ export function EventForm({
   onSubmit,
 }: Props) {
   return (
-    <div className="rounded-2xl border border-zinc-200/60 bg-white p-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)]">
+    <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:rounded-2xl sm:p-6">
       <div className="text-base font-semibold text-zinc-900">Add event</div>
       <div className="mt-1 text-xs leading-relaxed text-zinc-500">
         Search for a UIC building—only campus locations are allowed.
@@ -92,7 +92,7 @@ export function EventForm({
                   key={s.id}
                   type="button"
                   onClick={() => onBuildingSelect(s)}
-                  className="w-full px-4 py-2.5 text-left text-xs text-zinc-700 transition-colors hover:bg-zinc-50 active:bg-zinc-100"
+                  className="min-h-[44px] w-full px-4 py-3 text-left text-sm text-zinc-700 transition-colors hover:bg-zinc-50 active:bg-zinc-100 sm:py-2.5 sm:text-xs"
                 >
                   <span className="font-medium">{s.name}</span>
                   {s.address ? (

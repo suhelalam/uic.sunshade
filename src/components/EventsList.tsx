@@ -55,7 +55,7 @@ export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props
                 <button
                   type="button"
                   onClick={() => onEdit(e)}
-                  className="inline-flex items-center justify-center rounded-full border border-zinc-200 p-1.5 text-zinc-600 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200 p-2.5 text-zinc-600 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
                   aria-label={`Edit ${e.title}`}
                   title="Edit event"
                 >
