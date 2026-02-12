@@ -49,12 +49,12 @@ export function EventsList({
             <button
               type="button"
               onClick={() => onExpandToggle(e)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 text-left"
             >
-              <span className="truncate text-sm font-medium text-zinc-900 min-w-0">
+              <span className="truncate text-sm font-medium text-zinc-900 min-w-0 flex-1">
                 {e.title}
               </span>
-              <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+              <span className="shrink-0 w-12 text-right text-xs tabular-nums text-zinc-500">
                 {dist.toFixed(1)} mi
               </span>
               <svg
