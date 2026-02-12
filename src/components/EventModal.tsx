@@ -35,6 +35,7 @@ type Props = {
   onCancelEdit: () => void;
   onSaveEdit: (ev: React.FormEvent) => void;
   onDelete: () => void;
+  showDeleteConfirmInitially?: boolean;
 };
 
 export function EventModal({
@@ -64,10 +65,15 @@ export function EventModal({
   onCancelEdit,
   onSaveEdit,
   onDelete,
+  showDeleteConfirmInitially = false,
 }: Props) {
   const { user } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
-  
+
+  React.useEffect(() => {
+    if (showDeleteConfirmInitially) setShowDeleteConfirm(true);
+  }, [showDeleteConfirmInitially, event.id]);
+
   const canEdit = user && event.createdBy === user.uid;
   const isAttending = Boolean(anonymousId && event.attendees && event.attendees[anonymousId]);
   const attendCount = event.attendCount ?? 0;

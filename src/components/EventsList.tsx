@@ -1,6 +1,5 @@
 /**
- * List of event cards with title, date, address, distance from reference point, and edit button.
- * Used for both filtered (upcoming) events and past events sections.
+ * Compact list: one row per event (name + distance). Click to expand inline and show full details.
  */
 
 import type { MapEvent } from "@/lib/types";
@@ -11,87 +10,129 @@ import { haversineMiles } from "@/lib/geo";
 type Props = {
   events: MapEvent[];
   selectedLocation: LngLat;
+  expandedId: string | null;
+  onExpandToggle: (event: MapEvent) => void;
   onSelect: (event: MapEvent) => void;
   onEdit: (event: MapEvent) => void;
+  onDelete?: (event: MapEvent) => void;
+  currentUserId?: string | null;
 };
 
-export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props) {
+export function EventsList({
+  events,
+  selectedLocation,
+  expandedId,
+  onExpandToggle,
+  onSelect,
+  onEdit,
+  onDelete,
+  currentUserId,
+}: Props) {
   if (events.length === 0) {
-    return <div className="py-6 text-center text-sm text-zinc-500">No events match.</div>;
+    return <div className="py-3 text-center text-xs text-zinc-500">No events</div>;
   }
 
   return (
-    <div className="space-y-2">
-      {events.slice(0, 8).map((e) => {
+    <div className="space-y-1">
+      {events.slice(0, 20).map((e) => {
         const d = new Date(e.dateISO);
         const dist = haversineMiles(selectedLocation, e.location);
         const isPast = d < new Date();
+        const isExpanded = expandedId === e.id;
+        const canEdit = Boolean(currentUserId && e.createdBy === currentUserId);
+
         return (
           <div
             key={e.id}
-            className="w-full rounded-xl border border-zinc-200/80 bg-white px-4 py-3 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:border-zinc-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)]"
+            className="rounded-lg border border-zinc-200/80 bg-white overflow-hidden transition-all hover:border-zinc-300"
           >
-            <div className="flex items-start justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => onSelect(e)}
-                className="min-w-0 flex-1 text-left"
+            <button
+              type="button"
+              onClick={() => onExpandToggle(e)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 text-left"
+            >
+              <span className="truncate text-sm font-medium text-zinc-900 min-w-0">
+                {e.title}
+              </span>
+              <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                {dist.toFixed(1)} mi
+              </span>
+              <svg
+                className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
               >
-                <div className="truncate text-sm font-medium text-zinc-900">
-                  {e.title}
-                </div>
-                <div className="mt-0.5 text-xs text-zinc-500">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {isExpanded && (
+              <div className="border-t border-zinc-100 px-3 py-2.5 text-xs text-zinc-600 space-y-1.5 bg-zinc-50/50">
+                <div>
                   {dayIndexToLabel(d.getDay())} • {d.toLocaleString()}
                 </div>
                 {e.address || e.roomNumber ? (
-                  <div className="mt-1 truncate text-xs text-zinc-500">
+                  <div className="truncate">
                     {e.address}
-                    {e.address && e.roomNumber ? ', ' : ''}
+                    {e.address && e.roomNumber ? ", " : ""}
                     {e.roomNumber}
                   </div>
                 ) : null}
                 {e.organizer ? (
-                  <div className="mt-1 truncate text-xs text-zinc-600 font-medium">
-                    by {e.organizer}
-                  </div>
+                  <div className="font-medium text-zinc-700">by {e.organizer}</div>
                 ) : null}
-                <div className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-500">
-                  <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <div className="inline-flex items-center gap-1 text-zinc-500">
+                  <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   {(e.attendCount ?? 0)} {isPast ? "attended" : "attending"}
                 </div>
-              </button>
-              <div className="flex flex-col items-end gap-2">
-                <div className="text-xs font-medium tabular-nums text-zinc-700">
-                  {dist.toFixed(1)} mi
-                </div>
-                {!isPast && (
+                <div className="flex flex-wrap gap-2 pt-1.5">
                   <button
                     type="button"
-                    onClick={() => onEdit(e)}
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200 p-2.5 text-zinc-600 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
-                    aria-label={`Edit ${e.title}`}
-                    title="Edit event"
+                    onClick={(ev) => {
+                      ev.stopPropagation();
+                      onSelect(e);
+                    }}
+                    className="rounded-md bg-[#FF385C]/10 px-2.5 py-1.5 text-xs font-medium text-[#FF385C] hover:bg-[#FF385C]/20"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M12 20h9" />
-                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                    </svg>
+                    View details
                   </button>
-                )}
+                  {canEdit && !isPast && (
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        onEdit(e);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-50"
+                      aria-label={`Edit ${e.title}`}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canEdit && onDelete && (
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        onDelete(e);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-50"
+                      aria-label={`Delete ${e.title}`}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
       })}

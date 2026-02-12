@@ -161,6 +161,8 @@ export default function Home() {
   const [editExtraInfo, setEditExtraInfo] = React.useState("");
   const [editOrganizer, setEditOrganizer] = React.useState("");
   const [editError, setEditError] = React.useState("");
+  const [expandedListEventId, setExpandedListEventId] = React.useState<string | null>(null);
+  const [showDeleteConfirmForId, setShowDeleteConfirmForId] = React.useState<string | null>(null);
 
   const [isResolvingLocation, setIsResolvingLocation] = React.useState(false);
 
@@ -211,7 +213,6 @@ export default function Home() {
       setIsEditingEvent(false);
       return;
     }
-    setIsEditingEvent(false);
     setEditTitle(activeEvent.title);
     setEditDateTime(activeEvent.dateISO.slice(0, 16));
     setEditAddress(activeEvent.address ?? "");
@@ -247,12 +248,16 @@ export default function Home() {
     ]
   );
 
+  const upcomingEvents = React.useMemo(() => {
+    const now = new Date();
+    return filteredEvents.filter((e) => new Date(e.dateISO) >= now);
+  }, [filteredEvents]);
+
   const pastEvents = React.useMemo(() => {
     const now = new Date();
     return events
       .filter((e) => new Date(e.dateISO) < now)
-      .sort((a, b) => new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime())
-      .slice(0, 8);
+      .sort((a, b) => new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime());
   }, [events]);
 
   const handleAddEvent = async (ev: React.FormEvent) => {
@@ -455,91 +460,117 @@ export default function Home() {
             />
           </aside>
 
-          <main className="min-w-0">
+          <main className="min-w-0 space-y-4">
             <div className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
-              <div className="mt-0">
-                <EventsMap
-                  accessToken={accessToken}
-                  selectedLocation={selectedLocation}
-                  onSelectedLocationChange={(loc) => {
-                    setSelectedLocation(loc);
-                    setLocationError(null);
-                  }}
-                  focusLocation={focusLocation}
-                  events={filteredEvents}
-                  onUseMyLocation={handleUseMyLocation}
-                  isLocating={isLocating}
-                  locationError={locationError}
-                  onEventSelect={(e) => {
-                    setActiveEvent(e);
-                    setSelectedLocation(e.location);
-                    setFocusLocation(e.location);
-                  }}
-                  onMapClick={() => {
-                    setActiveEvent(null);
-                  }}
-                  filterOpen={filterOpen}
-                  onFilterToggle={() => setFilterOpen((prev) => !prev)}
-                  filterMode={filterMode}
-                  onFilterModeChange={setFilterMode}
-                  pickScope={pickScope}
-                  onPickScopeChange={setPickScope}
-                  pickYear={pickYear}
-                  onPickYearChange={setPickYear}
-                  pickMonth={pickMonth}
-                  onPickMonthChange={setPickMonth}
-                  pickDate={pickDate}
-                  onPickDateChange={setPickDate}
-                  onPickDateApply={() => {
-                    if (pickScope === "date") setPickDateApplied(pickDate);
-                  }}
-                  enableDistanceFilter={enableDistanceFilter}
-                  onEnableDistanceFilterChange={setEnableDistanceFilter}
-                  maxDistanceMiles={maxDistanceMiles}
-                  onMaxDistanceMilesChange={setMaxDistanceMiles}
-                  totalShown={filteredEvents.length}
-                />
-              </div>
-              <div className="mt-3">
-                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
-                  Events
+              <EventsMap
+                accessToken={accessToken}
+                selectedLocation={selectedLocation}
+                onSelectedLocationChange={(loc) => {
+                  setSelectedLocation(loc);
+                  setLocationError(null);
+                }}
+                focusLocation={focusLocation}
+                events={filteredEvents}
+                onUseMyLocation={handleUseMyLocation}
+                isLocating={isLocating}
+                locationError={locationError}
+                onEventSelect={(e) => {
+                  setActiveEvent(e);
+                  setSelectedLocation(e.location);
+                  setFocusLocation(e.location);
+                  setIsEditingEvent(false);
+                }}
+                onMapClick={() => setActiveEvent(null)}
+                filterOpen={filterOpen}
+                onFilterToggle={() => setFilterOpen((prev) => !prev)}
+                filterMode={filterMode}
+                onFilterModeChange={setFilterMode}
+                pickScope={pickScope}
+                onPickScopeChange={setPickScope}
+                pickYear={pickYear}
+                onPickYearChange={setPickYear}
+                pickMonth={pickMonth}
+                onPickMonthChange={setPickMonth}
+                pickDate={pickDate}
+                onPickDateChange={setPickDate}
+                onPickDateApply={() => {
+                  if (pickScope === "date") setPickDateApplied(pickDate);
+                }}
+                enableDistanceFilter={enableDistanceFilter}
+                onEnableDistanceFilterChange={setEnableDistanceFilter}
+                maxDistanceMiles={maxDistanceMiles}
+                onMaxDistanceMilesChange={setMaxDistanceMiles}
+                totalShown={filteredEvents.length}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <section className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0">
+                <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
+                  Upcoming events
+                </h2>
+                <div className="min-h-0 overflow-y-auto max-h-[280px] sm:max-h-[320px]">
+                  <EventsList
+                    events={upcomingEvents}
+                    selectedLocation={selectedLocation}
+                    expandedId={expandedListEventId}
+                    onExpandToggle={(e) => setExpandedListEventId((id) => (id === e.id ? null : e.id))}
+                    onSelect={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(false);
+                    }}
+                    onEdit={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(true);
+                    }}
+                    onDelete={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(false);
+                      setShowDeleteConfirmForId(e.id);
+                    }}
+                    currentUserId={user?.uid ?? null}
+                  />
                 </div>
-                <EventsList
-                  events={filteredEvents}
-                  selectedLocation={selectedLocation}
-                  onSelect={(e) => {
-                    setActiveEvent(e);
-                    setSelectedLocation(e.location);
-                    setFocusLocation(e.location);
-                  }}
-                  onEdit={(e) => {
-                    setActiveEvent(e);
-                    setSelectedLocation(e.location);
-                    setFocusLocation(e.location);
-                    setIsEditingEvent(new Date(e.dateISO) >= new Date());
-                  }}
-                />
-              </div>
-              <div className="mt-6">
-                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+              </section>
+              <section className="rounded-xl border border-zinc-200/60 bg-zinc-50/80 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0">
+                <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
                   Past events
+                </h2>
+                <div className="min-h-0 overflow-y-auto max-h-[280px] sm:max-h-[320px]">
+                  <EventsList
+                    events={pastEvents}
+                    selectedLocation={selectedLocation}
+                    expandedId={expandedListEventId}
+                    onExpandToggle={(e) => setExpandedListEventId((id) => (id === e.id ? null : e.id))}
+                    onSelect={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(false);
+                    }}
+                    onEdit={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(new Date(e.dateISO) >= new Date());
+                    }}
+                    onDelete={(e) => {
+                      setActiveEvent(e);
+                      setSelectedLocation(e.location);
+                      setFocusLocation(e.location);
+                      setIsEditingEvent(false);
+                      setShowDeleteConfirmForId(e.id);
+                    }}
+                    currentUserId={user?.uid ?? null}
+                  />
                 </div>
-                <EventsList
-                  events={pastEvents}
-                  selectedLocation={selectedLocation}
-                  onSelect={(e) => {
-                    setActiveEvent(e);
-                    setSelectedLocation(e.location);
-                    setFocusLocation(e.location);
-                  }}
-                  onEdit={(e) => {
-                    setActiveEvent(e);
-                    setSelectedLocation(e.location);
-                    setFocusLocation(e.location);
-                    setIsEditingEvent(new Date(e.dateISO) >= new Date());
-                  }}
-                />
-              </div>
+              </section>
             </div>
           </main>
         </div>
@@ -567,17 +598,24 @@ export default function Home() {
             anonymousId={anonymousId}
             onAttend={handleAttend}
             onUnattend={handleUnattend}
-            onClose={() => setActiveEvent(null)}
+            onClose={() => {
+              setActiveEvent(null);
+              setShowDeleteConfirmForId(null);
+            }}
             onStartEdit={() => setIsEditingEvent(true)}
             onCancelEdit={() => setIsEditingEvent(false)}
             onSaveEdit={handleSaveEdit}
             onDelete={() => {
               void deleteEvent(activeEvent!.id)
-                .then(() => setActiveEvent(null))
+                .then(() => {
+                  setActiveEvent(null);
+                  setShowDeleteConfirmForId(null);
+                })
                 .catch((err) => {
                   setEditError(err instanceof Error ? err.message : "Could not delete event. Try again.");
                 });
             }}
+            showDeleteConfirmInitially={activeEvent?.id === showDeleteConfirmForId}
           />
         ) : null}
       </div>
