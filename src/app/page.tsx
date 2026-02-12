@@ -413,54 +413,9 @@ export default function Home() {
       <div className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(2rem,env(safe-area-inset-bottom))]">
         <HeaderBar accessToken={accessToken} />
 
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-[360px_1fr]">
-          <aside className="space-y-6">
-            <EventForm
-              title={newTitle}
-              dateTime={newDateTime}
-              address={newAddress}
-              roomNumber={newRoomNumber}
-              details={newDetails}
-              extraInfo={newExtraInfo}
-              organizer={newOrganizer}
-              formError={formError}
-              buildingSuggestions={buildingSuggestions}
-              isResolvingLocation={isResolvingLocation}
-              onTitleChange={setNewTitle}
-              onDateTimeChange={setNewDateTime}
-              onAddressChange={(value) => {
-                setNewAddress(value);
-                setNewEventLocation(null);
-                setFormError("");
-              }}
-              onRoomNumberChange={setNewRoomNumber}
-              onImageChange={setNewImageFile}
-              onBuildingSelect={async (s) => {
-                setFormError("");
-                setIsResolvingLocation(true);
-                try {
-                  const geocodeQuery = s.address ?? s.name;
-                  const coords = await geocodeBuilding(geocodeQuery, accessToken);
-                  if (coords) {
-                    setNewEventLocation(coords);
-                    setNewAddress(s.name);
-                  } else {
-                    setFormError("Could not find location for this building.");
-                  }
-                } catch {
-                  setFormError("Could not find location for this building.");
-                } finally {
-                  setIsResolvingLocation(false);
-                }
-              }}
-              onDetailsChange={setNewDetails}
-              onExtraInfoChange={setNewExtraInfo}
-              onOrganizerChange={setNewOrganizer}
-              onSubmit={handleAddEvent}
-            />
-          </aside>
-
-          <main className="min-w-0 space-y-4">
+        <div className="grid gap-4 sm:gap-6 lg:grid-cols-1 lg:grid-rows-[auto_1fr]">
+          {/* Row 1: Map full width */}
+          <div className="min-w-0 lg:col-span-1">
             <div className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
               <EventsMap
                 accessToken={accessToken}
@@ -503,13 +458,62 @@ export default function Home() {
                 totalShown={filteredEvents.length}
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Row 2: Add events (left) | Upcoming + Past lists (right) — same row height, lists scroll within */}
+          <div className="min-w-0 grid gap-4 sm:gap-6 lg:grid-cols-[360px_1fr] lg:items-stretch">
+            <aside className="space-y-6">
+              <EventForm
+                title={newTitle}
+                dateTime={newDateTime}
+                address={newAddress}
+                roomNumber={newRoomNumber}
+                details={newDetails}
+                extraInfo={newExtraInfo}
+                organizer={newOrganizer}
+                formError={formError}
+                buildingSuggestions={buildingSuggestions}
+                isResolvingLocation={isResolvingLocation}
+                onTitleChange={setNewTitle}
+                onDateTimeChange={setNewDateTime}
+                onAddressChange={(value) => {
+                  setNewAddress(value);
+                  setNewEventLocation(null);
+                  setFormError("");
+                }}
+                onRoomNumberChange={setNewRoomNumber}
+                onImageChange={setNewImageFile}
+                onBuildingSelect={async (s) => {
+                  setFormError("");
+                  setIsResolvingLocation(true);
+                  try {
+                    const geocodeQuery = s.address ?? s.name;
+                    const coords = await geocodeBuilding(geocodeQuery, accessToken);
+                    if (coords) {
+                      setNewEventLocation(coords);
+                      setNewAddress(s.name);
+                    } else {
+                      setFormError("Could not find location for this building.");
+                    }
+                  } catch {
+                    setFormError("Could not find location for this building.");
+                  } finally {
+                    setIsResolvingLocation(false);
+                  }
+                }}
+                onDetailsChange={setNewDetails}
+                onExtraInfoChange={setNewExtraInfo}
+                onOrganizerChange={setNewOrganizer}
+                onSubmit={handleAddEvent}
+              />
+            </aside>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0 h-full">
               <section className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0">
                 <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
                   Upcoming events
                 </h2>
-                <div className="min-h-0 overflow-y-auto max-h-[280px] sm:max-h-[320px]">
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   <EventsList
                     events={upcomingEvents}
                     selectedLocation={selectedLocation}
@@ -542,7 +546,7 @@ export default function Home() {
                 <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
                   Past events
                 </h2>
-                <div className="min-h-0 overflow-y-auto max-h-[280px] sm:max-h-[320px]">
+                <div className="min-h-0 flex-1 overflow-y-auto">
                   <EventsList
                     events={pastEvents}
                     selectedLocation={selectedLocation}
@@ -572,7 +576,7 @@ export default function Home() {
                 </div>
               </section>
             </div>
-          </main>
+          </div>
         </div>
 
         {activeEvent ? (
