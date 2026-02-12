@@ -13,6 +13,7 @@ import { CurrentLocationMarker } from "@/components/CurrentLocationMarker";
 import { EventsFilter } from "@/components/EventsFilter";
 import { MapMarkerPin } from "@/components/MapMarkerPin";
 import { MapPopupContent } from "@/components/MapPopupContent";
+import { MapPopupMultiEventContent, groupEventsByLocation } from "@/components/MapPopupMultiEventContent";
 
 type Props = {
   accessToken?: string;
@@ -21,6 +22,7 @@ type Props = {
   focusLocation?: LngLat | null;
   events: MapEvent[];
   onEventSelect?: (event: MapEvent) => void;
+  onMapClick?: () => void; // Callback when map (not marker) is clicked
   filterOpen?: boolean;
   onFilterToggle?: () => void;
   filterMode?: FilterMode;
@@ -54,6 +56,7 @@ export function EventsMap({
   focusLocation,
   events,
   onEventSelect,
+  onMapClick,
   filterOpen = false,
   onFilterToggle,
   filterMode = "all",
@@ -85,6 +88,8 @@ export function EventsMap({
   const eventMarkersRef = React.useRef<
     Map<string, { marker: any; popupRoot: ReturnType<typeof createRoot>; markerRoot: ReturnType<typeof createRoot> }>
   >(new Map());
+  /** Track which popup is currently open (by event id) */
+  const openPopupIdRef = React.useRef<string | null>(null);
   const currentLocationMarkerRef = React.useRef<{ marker: any; markerRoot: ReturnType<typeof createRoot> } | null>(null);
   const geocoderRef = React.useRef<any>(null);
 
@@ -131,6 +136,17 @@ export function EventsMap({
       }
     }
 
+    // Helper to check if two locations are the same (within threshold)
+    const areLocationsSame = (loc1: { lng: number; lat: number }, loc2: { lng: number; lat: number }): boolean => {
+      const threshold = 0.0001; // ~10 meters
+      return Math.abs(loc1.lng - loc2.lng) < threshold && Math.abs(loc1.lat - loc2.lat) < threshold;
+    };
+
+    // Helper to find all events at the same location
+    const getEventsAtLocation = (event: MapEvent): MapEvent[] => {
+      return currentEvents.filter((e) => areLocationsSame(e.location, event.location));
+    };
+
     // Add/update
     for (const e of currentEvents) {
       // Validate location data before using it (defensive for Firestore shape differences)
@@ -148,20 +164,43 @@ export function EventsMap({
       // Marker button element (Mapbox requires DOM element; render React pin into it)
       const markerEl = document.createElement("button");
       markerEl.type = "button";
-      markerEl.className = "h-9 w-9 cursor-pointer";
+      markerEl.className = "cursor-pointer border-0 bg-transparent p-0 h-11 w-11";
       markerEl.title = `${e.title} • ${new Date(e.dateISO).toLocaleString()}`;
       const markerRoot = createRoot(markerEl);
-      markerRoot.render(<MapMarkerPin />);
-
-      // Popup with React-rendered content
-      const popupContainer = document.createElement("div");
-      const popupRoot = createRoot(popupContainer);
-      popupRoot.render(
-        <MapPopupContent
-          event={e}
-          onViewDetails={() => onEventSelect?.(e)}
+      markerRoot.render(
+        <MapMarkerPin
+          imageUrl={e.imageUrl}
+          creatorPhotoUrl={e.creatorPhotoUrl}
+          title={e.title}
+          creatorName={e.createdByName}
+          organizer={e.organizer}
         />
       );
+
+      // Determine if there are multiple events at this location
+      const eventsAtLocation = getEventsAtLocation(e);
+      const hasMultipleEvents = eventsAtLocation.length > 1;
+
+      // Popup container - will be dynamically updated based on single vs multi
+      const popupContainer = document.createElement("div");
+      const popupRoot = createRoot(popupContainer);
+
+      // Initial render - will be updated on click
+      if (hasMultipleEvents) {
+        popupRoot.render(
+          <MapPopupMultiEventContent
+            events={eventsAtLocation}
+            onViewDetails={(event) => onEventSelect?.(event)}
+          />
+        );
+      } else {
+        popupRoot.render(
+          <MapPopupContent
+            event={e}
+            onViewDetails={() => onEventSelect?.(e)}
+          />
+        );
+      }
 
       const popup = new mapboxgl.Popup({
         offset: 14,
@@ -173,9 +212,56 @@ export function EventsMap({
         .setLngLat([e.location.lng, e.location.lat])
         .setPopup(popup)
         .addTo(map);
+      
       marker.getElement().addEventListener("click", (ev: Event) => {
         ev.stopPropagation();
-        marker.togglePopup();
+        
+        // Close all other popups first
+        const currentOpenId = openPopupIdRef.current;
+        if (currentOpenId && currentOpenId !== e.id) {
+          const otherMarker = eventMarkersRef.current.get(currentOpenId);
+          if (otherMarker && otherMarker.marker.getPopup().isOpen()) {
+            otherMarker.marker.getPopup().remove();
+          }
+        }
+        
+        // Update popup content based on current events at this location
+        const currentEventsAtLocation = getEventsAtLocation(e);
+        const currentlyHasMultiple = currentEventsAtLocation.length > 1;
+        
+        if (currentlyHasMultiple) {
+          // Re-render with multi-event content
+          popupRoot.render(
+            <MapPopupMultiEventContent
+              events={currentEventsAtLocation}
+              onViewDetails={(event) => onEventSelect?.(event)}
+            />
+          );
+        } else {
+          // Re-render with single event content
+          popupRoot.render(
+            <MapPopupContent
+              event={e}
+              onViewDetails={() => onEventSelect?.(e)}
+            />
+          );
+        }
+        
+        // Toggle this popup
+        if (popup.isOpen()) {
+          popup.remove();
+          openPopupIdRef.current = null;
+        } else {
+          popup.addTo(map);
+          openPopupIdRef.current = e.id;
+        }
+      });
+      
+      // Track when popup closes (e.g., clicking outside)
+      popup.on("close", () => {
+        if (openPopupIdRef.current === e.id) {
+          openPopupIdRef.current = null;
+        }
       });
 
       eventMarkersRef.current.set(e.id, { marker, popupRoot, markerRoot });
@@ -220,6 +306,31 @@ export function EventsMap({
 
       map.on("load", () => {
         syncEventMarkers();
+      });
+
+      // Handle map clicks (not on markers/popups) to close popups and modal
+      map.on("click", (e: any) => {
+        // Only trigger if click is directly on the map canvas (not on markers/popups/controls)
+        const target = e.originalEvent?.target;
+        if (
+          target &&
+          target.classList.contains("mapboxgl-canvas") &&
+          !target.closest(".mapboxgl-popup") &&
+          !target.closest(".mapboxgl-marker") &&
+          !target.closest(".mapboxgl-ctrl")
+        ) {
+          // Close all open popups
+          const currentOpenId = openPopupIdRef.current;
+          if (currentOpenId) {
+            const marker = eventMarkersRef.current.get(currentOpenId);
+            if (marker && marker.marker.getPopup().isOpen()) {
+              marker.marker.getPopup().remove();
+            }
+            openPopupIdRef.current = null;
+          }
+          // Close modal if open
+          onMapClick?.();
+        }
       });
 
       mapRef.current = map;

@@ -11,6 +11,7 @@ type Props = {
   title: string;
   dateTime: string;
   address: string;
+  roomNumber: string;
   details: string;
   extraInfo: string;
   organizer: string;
@@ -20,10 +21,12 @@ type Props = {
   onTitleChange: (value: string) => void;
   onDateTimeChange: (value: string) => void;
   onAddressChange: (value: string) => void;
+  onRoomNumberChange: (value: string) => void;
   onBuildingSelect: (suggestion: UicBuildingSuggestion) => void;
   onDetailsChange: (value: string) => void;
   onExtraInfoChange: (value: string) => void;
   onOrganizerChange: (value: string) => void;
+  onImageChange: (file: File | null) => void;
   onSubmit: (ev: React.FormEvent) => void;
 };
 
@@ -31,6 +34,7 @@ export function EventForm({
   title,
   dateTime,
   address,
+  roomNumber,
   details,
   extraInfo,
   organizer,
@@ -40,14 +44,18 @@ export function EventForm({
   onTitleChange,
   onDateTimeChange,
   onAddressChange,
+  onRoomNumberChange,
   onBuildingSelect,
   onDetailsChange,
   onExtraInfoChange,
   onOrganizerChange,
+   onImageChange,
   onSubmit,
 }: Props) {
   const { user, isUicUser, loading: authLoading } = useAuth();
   const dateInputRef = React.useRef<HTMLInputElement | null>(null);
+  const locationBlockRef = React.useRef<HTMLDivElement | null>(null);
+  const formErrorRef = React.useRef<HTMLDivElement | null>(null);
   const [dateFocused, setDateFocused] = React.useState(false);
   const [showSuggestions, setShowSuggestions] = React.useState(true);
 
@@ -55,6 +63,21 @@ export function EventForm({
     // If parent clears suggestions, hide locally
     if (buildingSuggestions.length === 0) setShowSuggestions(false);
   }, [buildingSuggestions.length]);
+
+  // Close suggestions when clicking outside (e.g. "Add event" button) so the submit isn't blocked
+  React.useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!showSuggestions) return;
+      const el = locationBlockRef.current;
+      if (el && !el.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [showSuggestions]);
+
+  React.useEffect(() => {
+    if (formError && formErrorRef.current) formErrorRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [formError]);
 
   const handleConfirmDate = () => {
     dateInputRef.current?.blur();
@@ -93,7 +116,13 @@ export function EventForm({
         Search for a UIC building—only campus locations are allowed.
       </div>
 
-      <form className="mt-5 space-y-4" onSubmit={onSubmit}>
+      <form
+        className="mt-5 space-y-4"
+        onSubmit={(ev) => {
+          setShowSuggestions(false);
+          onSubmit(ev);
+        }}
+      >
         <div>
           <label className="text-xs font-medium text-zinc-600">Title</label>
           <input
@@ -128,9 +157,9 @@ export function EventForm({
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative" ref={locationBlockRef}>
           <label className="text-xs font-medium text-zinc-600">
-            Location (address)
+            Location (building)
           </label>
           <input
             value={address}
@@ -171,6 +200,36 @@ export function EventForm({
 
         <div>
           <label className="text-xs font-medium text-zinc-600">
+            Room number
+          </label>
+          <input
+            value={roomNumber}
+            onChange={(e) => onRoomNumberChange(e.target.value)}
+            placeholder="e.g. 201, 3rd Floor, Room A"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-zinc-600">
+            Event photo <span className="font-normal text-zinc-400">(optional – skip if you like)</span>
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null;
+              onImageChange(file);
+            }}
+            className="mt-1.5 block w-full text-xs text-zinc-600 file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-zinc-700 hover:file:bg-zinc-200"
+          />
+          <p className="mt-1 text-[10px] text-zinc-500">
+            Square-ish photos work best for the round map marker. Leave empty to use your profile picture on the pin.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-zinc-600">
             Description
           </label>
           <textarea
@@ -203,7 +262,7 @@ export function EventForm({
         </div>
 
         {formError ? (
-          <div className="rounded-xl border border-rose-200/80 bg-rose-50/90 px-3 py-2.5 text-xs text-rose-700">
+          <div ref={formErrorRef} className="rounded-xl border border-rose-200/80 bg-rose-50/90 px-3 py-2.5 text-xs text-rose-700" role="alert">
             {formError}
           </div>
         ) : null}

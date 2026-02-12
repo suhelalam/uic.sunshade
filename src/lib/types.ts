@@ -13,11 +13,18 @@ export type MapEvent = {
   dateISO: string; // ISO string
   location: LngLat;
   address?: string;
+  roomNumber?: string;
+  imageUrl?: string;
+  creatorPhotoUrl?: string;
   details?: string;
   extraInfo?: string;
   organizer?: string;
   createdBy?: string; // User UID who created the event
   createdByName?: string; // Display name of creator
+  /** Number of people who tapped "Attend" (one per anonymous ID). */
+  attendCount?: number;
+  /** Map of anonymous attendee ID -> timestamp (used to enforce one attend per device/browser). */
+  attendees?: Record<string, unknown>;
 };
 
 /** Mapbox geocoder suggestion result. */

@@ -20,14 +20,33 @@ import {
   type UicBuildingSuggestion,
 } from "@/lib/uicBuildings";
 import type { FilterMode, LngLat, MapEvent, PickScope } from "@/lib/types";
-import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from "@/lib/firebase";
+import { subscribeToEvents, createEvent, updateEvent, deleteEvent, uploadEventImage, attendEvent, unattendEvent } from "@/lib/firebase";
 import { useAuth } from "@/hooks/useAuth";
+import { useAnonymousId } from "@/hooks/useAnonymousId";
+
+function applyAttend(event: MapEvent, anonymousId: string): MapEvent {
+  return {
+    ...event,
+    attendCount: (event.attendCount ?? 0) + 1,
+    attendees: { ...(event.attendees ?? {}), [anonymousId]: Date.now() },
+  };
+}
+function applyUnattend(event: MapEvent, anonymousId: string): MapEvent {
+  const attendees = { ...(event.attendees ?? {}) };
+  delete attendees[anonymousId];
+  return {
+    ...event,
+    attendCount: Math.max(0, (event.attendCount ?? 0) - 1),
+    attendees,
+  };
+}
 
 /** Default reference location (UIC campus) for distance calculations. */
 const DEFAULT_SELECTED: LngLat = { lng: -87.6477, lat: 41.8719 };
 
 export default function Home() {
   const { user, isUicUser } = useAuth();
+  const anonymousId = useAnonymousId();
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const [selectedLocation, setSelectedLocation] =
@@ -122,9 +141,11 @@ export default function Home() {
   const [newTitle, setNewTitle] = React.useState("");
   const [newDateTime, setNewDateTime] = React.useState<string>("");
   const [newAddress, setNewAddress] = React.useState<string>("");
+  const [newRoomNumber, setNewRoomNumber] = React.useState<string>("");
   const [newEventLocation, setNewEventLocation] = React.useState<LngLat | null>(
     null
   );
+  const [newImageFile, setNewImageFile] = React.useState<File | null>(null);
   const [newDetails, setNewDetails] = React.useState<string>("");
   const [newExtraInfo, setNewExtraInfo] = React.useState<string>("");
   const [newOrganizer, setNewOrganizer] = React.useState<string>("");
@@ -134,6 +155,8 @@ export default function Home() {
   const [editTitle, setEditTitle] = React.useState("");
   const [editDateTime, setEditDateTime] = React.useState("");
   const [editAddress, setEditAddress] = React.useState("");
+  const [editRoomNumber, setEditRoomNumber] = React.useState("");
+  const [editImageFile, setEditImageFile] = React.useState<File | null>(null);
   const [editDetails, setEditDetails] = React.useState("");
   const [editExtraInfo, setEditExtraInfo] = React.useState("");
   const [editOrganizer, setEditOrganizer] = React.useState("");
@@ -160,16 +183,28 @@ export default function Home() {
           dateISO: r.dateISO,
           location: r.location,
           address: r.address,
+          roomNumber: r.roomNumber,
+          imageUrl: r.imageUrl,
+          creatorPhotoUrl: r.creatorPhotoUrl,
           details: r.details,
           extraInfo: r.extraInfo,
           organizer: r.organizer,
           createdBy: r.createdBy,
           createdByName: r.createdByName,
+          attendCount: r.attendCount,
+          attendees: r.attendees,
         })) as MapEvent[]
       );
     });
     return () => unsub();
   }, []);
+
+  // Keep activeEvent in sync with events so modal shows fresh attend count/status when Firestore updates
+  React.useEffect(() => {
+    if (!activeEvent) return;
+    const updated = events.find((e) => e.id === activeEvent.id);
+    if (updated && updated !== activeEvent) setActiveEvent(updated);
+  }, [events, activeEvent]);
 
   React.useEffect(() => {
     if (!activeEvent) {
@@ -180,6 +215,7 @@ export default function Home() {
     setEditTitle(activeEvent.title);
     setEditDateTime(activeEvent.dateISO.slice(0, 16));
     setEditAddress(activeEvent.address ?? "");
+    setEditRoomNumber(activeEvent.roomNumber ?? "");
     setEditDetails(activeEvent.details ?? "");
     setEditExtraInfo(activeEvent.extraInfo ?? "");
     setEditOrganizer(activeEvent.organizer ?? "");
@@ -219,7 +255,7 @@ export default function Home() {
       .slice(0, 8);
   }, [events]);
 
-  const handleAddEvent = (ev: React.FormEvent) => {
+  const handleAddEvent = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setFormError("");
 
@@ -252,28 +288,69 @@ export default function Home() {
       return;
     }
 
-    // Persist to Firestore; subscription will update local state
-    void createEvent({
-      title,
-      dateISO: date.toISOString(),
-      location: newEventLocation,
-      address,
-      details: newDetails.trim() || undefined,
-      extraInfo: newExtraInfo.trim() || undefined,
-      organizer: newOrganizer.trim() || undefined,
-    }).catch((err) => {
+    try {
+      let imageUrl: string | undefined;
+      if (newImageFile) {
+        imageUrl = await uploadEventImage(newImageFile);
+      }
+
+      await createEvent({
+        title,
+        dateISO: date.toISOString(),
+        location: newEventLocation,
+        address,
+        roomNumber: newRoomNumber.trim() || undefined,
+        imageUrl,
+        details: newDetails.trim() || undefined,
+        extraInfo: newExtraInfo.trim() || undefined,
+        organizer: newOrganizer.trim() || undefined,
+      });
+
+      setNewTitle("");
+      setNewDateTime("");
+      setNewAddress("");
+      setNewRoomNumber("");
+      setNewEventLocation(null);
+      setNewImageFile(null);
+      setNewDetails("");
+      setNewExtraInfo("");
+      setNewOrganizer("");
+    } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not save event. Try again.");
-    });
-    setNewTitle("");
-    setNewDateTime("");
-    setNewAddress("");
-    setNewEventLocation(null);
-    setNewDetails("");
-    setNewExtraInfo("");
-    setNewOrganizer("");
+    }
   };
 
-  const handleSaveEdit = (ev: React.FormEvent) => {
+  const handleAttend = React.useCallback(
+    async (eventId: string) => {
+      if (!anonymousId) return;
+      setEvents((prev) => prev.map((e) => (e.id !== eventId ? e : applyAttend(e, anonymousId))));
+      setActiveEvent((prev) => (prev?.id !== eventId ? prev : prev ? applyAttend(prev, anonymousId) : null));
+      try {
+        await attendEvent(eventId, anonymousId);
+      } catch {
+        setEvents((prev) => prev.map((e) => (e.id !== eventId ? e : applyUnattend(e, anonymousId))));
+        setActiveEvent((prev) => (prev?.id !== eventId ? prev : prev ? applyUnattend(prev, anonymousId) : null));
+      }
+    },
+    [anonymousId]
+  );
+
+  const handleUnattend = React.useCallback(
+    async (eventId: string) => {
+      if (!anonymousId) return;
+      setEvents((prev) => prev.map((e) => (e.id !== eventId ? e : applyUnattend(e, anonymousId))));
+      setActiveEvent((prev) => (prev?.id !== eventId ? prev : prev ? applyUnattend(prev, anonymousId) : null));
+      try {
+        await unattendEvent(eventId, anonymousId);
+      } catch {
+        setEvents((prev) => prev.map((e) => (e.id !== eventId ? e : applyAttend(e, anonymousId))));
+        setActiveEvent((prev) => (prev?.id !== eventId ? prev : prev ? applyAttend(prev, anonymousId) : null));
+      }
+    },
+    [anonymousId]
+  );
+
+  const handleSaveEdit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     if (!activeEvent) return;
     setEditError("");
@@ -302,19 +379,28 @@ export default function Home() {
       return;
     }
 
-    // Update in Firestore; subscription will update local state
-    void updateEvent(activeEvent.id, {
-      title,
-      dateISO: date.toISOString(),
-      address,
-      details: editDetails.trim() || undefined,
-      extraInfo: editExtraInfo.trim() || undefined,
-      organizer: editOrganizer.trim() || undefined,
-    })
-      .then(() => setIsEditingEvent(false))
-      .catch((err) => {
-        setEditError(err instanceof Error ? err.message : "Could not save changes. Try again.");
+    try {
+      let imageUrl: string | undefined = activeEvent.imageUrl;
+      if (editImageFile) {
+        imageUrl = await uploadEventImage(editImageFile);
+      }
+
+      await updateEvent(activeEvent.id, {
+        title,
+        dateISO: date.toISOString(),
+        address,
+        roomNumber: editRoomNumber.trim() || undefined,
+        imageUrl,
+        details: editDetails.trim() || undefined,
+        extraInfo: editExtraInfo.trim() || undefined,
+        organizer: editOrganizer.trim() || undefined,
       });
+
+      setIsEditingEvent(false);
+      setEditImageFile(null);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Could not save changes. Try again.");
+    }
   };
 
   return (
@@ -328,6 +414,7 @@ export default function Home() {
               title={newTitle}
               dateTime={newDateTime}
               address={newAddress}
+              roomNumber={newRoomNumber}
               details={newDetails}
               extraInfo={newExtraInfo}
               organizer={newOrganizer}
@@ -341,6 +428,8 @@ export default function Home() {
                 setNewEventLocation(null);
                 setFormError("");
               }}
+              onRoomNumberChange={setNewRoomNumber}
+              onImageChange={setNewImageFile}
               onBuildingSelect={async (s) => {
                 setFormError("");
                 setIsResolvingLocation(true);
@@ -386,6 +475,9 @@ export default function Home() {
                     setSelectedLocation(e.location);
                     setFocusLocation(e.location);
                   }}
+                  onMapClick={() => {
+                    setActiveEvent(null);
+                  }}
                   filterOpen={filterOpen}
                   onFilterToggle={() => setFilterOpen((prev) => !prev)}
                   filterMode={filterMode}
@@ -424,7 +516,7 @@ export default function Home() {
                     setActiveEvent(e);
                     setSelectedLocation(e.location);
                     setFocusLocation(e.location);
-                    setIsEditingEvent(true);
+                    setIsEditingEvent(new Date(e.dateISO) >= new Date());
                   }}
                 />
               </div>
@@ -444,7 +536,7 @@ export default function Home() {
                     setActiveEvent(e);
                     setSelectedLocation(e.location);
                     setFocusLocation(e.location);
-                    setIsEditingEvent(true);
+                    setIsEditingEvent(new Date(e.dateISO) >= new Date());
                   }}
                 />
               </div>
@@ -459,6 +551,7 @@ export default function Home() {
             editTitle={editTitle}
             editDateTime={editDateTime}
             editAddress={editAddress}
+            editRoomNumber={editRoomNumber}
             editDetails={editDetails}
             editExtraInfo={editExtraInfo}
             editOrganizer={editOrganizer}
@@ -466,9 +559,14 @@ export default function Home() {
             onEditTitleChange={setEditTitle}
             onEditDateTimeChange={setEditDateTime}
             onEditAddressChange={setEditAddress}
+            onEditRoomNumberChange={setEditRoomNumber}
             onEditDetailsChange={setEditDetails}
             onEditExtraInfoChange={setEditExtraInfo}
             onEditOrganizerChange={setEditOrganizer}
+            onEditImageChange={setEditImageFile}
+            anonymousId={anonymousId}
+            onAttend={handleAttend}
+            onUnattend={handleUnattend}
             onClose={() => setActiveEvent(null)}
             onStartEdit={() => setIsEditingEvent(true)}
             onCancelEdit={() => setIsEditingEvent(false)}

@@ -25,6 +25,7 @@ export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props
       {events.slice(0, 8).map((e) => {
         const d = new Date(e.dateISO);
         const dist = haversineMiles(selectedLocation, e.location);
+        const isPast = d < new Date();
         return (
           <div
             key={e.id}
@@ -42,9 +43,11 @@ export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props
                 <div className="mt-0.5 text-xs text-zinc-500">
                   {dayIndexToLabel(d.getDay())} • {d.toLocaleString()}
                 </div>
-                {e.address ? (
+                {e.address || e.roomNumber ? (
                   <div className="mt-1 truncate text-xs text-zinc-500">
                     {e.address}
+                    {e.address && e.roomNumber ? ', ' : ''}
+                    {e.roomNumber}
                   </div>
                 ) : null}
                 {e.organizer ? (
@@ -52,32 +55,41 @@ export function EventsList({ events, selectedLocation, onSelect, onEdit }: Props
                     by {e.organizer}
                   </div>
                 ) : null}
+                <div className="mt-1 inline-flex items-center gap-1 text-xs text-zinc-500">
+                  <svg className="h-3 w-3 shrink-0 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  {(e.attendCount ?? 0)} {isPast ? "attended" : "attending"}
+                </div>
               </button>
               <div className="flex flex-col items-end gap-2">
                 <div className="text-xs font-medium tabular-nums text-zinc-700">
                   {dist.toFixed(1)} mi
                 </div>
-                <button
-                  type="button"
-                  onClick={() => onEdit(e)}
-                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200 p-2.5 text-zinc-600 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
-                  aria-label={`Edit ${e.title}`}
-                  title="Edit event"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                {!isPast && (
+                  <button
+                    type="button"
+                    onClick={() => onEdit(e)}
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-zinc-200 p-2.5 text-zinc-600 transition-colors hover:bg-zinc-50 hover:border-zinc-300"
+                    aria-label={`Edit ${e.title}`}
+                    title="Edit event"
                   >
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-                  </svg>
-                </button>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           </div>
