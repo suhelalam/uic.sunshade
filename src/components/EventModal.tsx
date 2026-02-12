@@ -6,6 +6,7 @@
 
 import * as React from "react";
 import type { MapEvent } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
 
 type Props = {
   event: MapEvent;
@@ -52,7 +53,10 @@ export function EventModal({
   onSaveEdit,
   onDelete,
 }: Props) {
+  const { user } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
+  
+  const canEdit = user && event.createdBy === user.uid;
 
   const handleDeleteConfirm = (confirmed: boolean) => {
     if (confirmed) {
@@ -109,6 +113,12 @@ export function EventModal({
             <div>
               <div className="text-xs font-medium text-zinc-500">Organizer</div>
               <div>{event.organizer}</div>
+            </div>
+          ) : null}
+          {event.createdByName ? (
+            <div>
+              <div className="text-xs font-medium text-zinc-500">Created by</div>
+              <div>{event.createdByName}</div>
             </div>
           ) : null}
         </div>
@@ -220,20 +230,24 @@ export function EventModal({
           </div>
         ) : (
           <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-2">
-            <button
-              type="button"
-              onClick={onStartEdit}
-              className="min-h-[44px] rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:px-3 sm:py-2 sm:text-xs"
-            >
-              Edit event
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="min-h-[44px] rounded-xl border border-rose-200 px-4 py-3 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 sm:px-3 sm:py-2 sm:text-xs"
-            >
-              Delete event
-            </button>
+            {canEdit && (
+              <>
+                <button
+                  type="button"
+                  onClick={onStartEdit}
+                  className="min-h-[44px] rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:px-3 sm:py-2 sm:text-xs"
+                >
+                  Edit event
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="min-h-[44px] rounded-xl border border-rose-200 px-4 py-3 text-sm font-medium text-rose-700 transition-colors hover:bg-rose-50 sm:px-3 sm:py-2 sm:text-xs"
+                >
+                  Delete event
+                </button>
+              </>
+            )}
             <a
               className="min-h-[44px] inline-flex items-center justify-center rounded-xl border border-zinc-200 px-4 py-3 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 sm:px-3 sm:py-2 sm:text-xs"
               href={`https://www.google.com/maps/dir/?api=1&destination=${event.location.lat},${event.location.lng}`}

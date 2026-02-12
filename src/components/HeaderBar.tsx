@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AuthButton } from "./AuthButton";
 
 type Props = {
   accessToken?: string;
@@ -23,21 +24,24 @@ export function HeaderBar({ accessToken }: Props) {
         </h1>
       </div>
 
-      {!accessToken ? (
-        <div className="rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 text-[11px] text-zinc-600 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:rounded-2xl sm:px-4 sm:py-3 sm:text-xs">
-          <div className="font-medium">Token setup</div>
-          <div className="mt-1">
-            Add your Mapbox public token to{" "}
-            <code className="rounded bg-white px-1.5 py-0.5">
-              .env.local
-            </code>{" "}
-            as{" "}
-            <code className="rounded bg-white px-1.5 py-0.5">
-              NEXT_PUBLIC_MAPBOX_TOKEN=...
-            </code>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+        <AuthButton />
+        {!accessToken ? (
+          <div className="rounded-xl border border-zinc-200/80 bg-white px-3 py-2.5 text-[11px] text-zinc-600 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:rounded-2xl sm:px-4 sm:py-3 sm:text-xs">
+            <div className="font-medium">Token setup</div>
+            <div className="mt-1">
+              Add your Mapbox public token to{" "}
+              <code className="rounded bg-white px-1.5 py-0.5">
+                .env.local
+              </code>{" "}
+              as{" "}
+              <code className="rounded bg-white px-1.5 py-0.5">
+                NEXT_PUBLIC_MAPBOX_TOKEN=...
+              </code>
+            </div>
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </header>
   );
 }

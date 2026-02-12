@@ -16,6 +16,8 @@ export type MapEvent = {
   details?: string;
   extraInfo?: string;
   organizer?: string;
+  createdBy?: string; // User UID who created the event
+  createdByName?: string; // Display name of creator
 };
 
 /** Mapbox geocoder suggestion result. */

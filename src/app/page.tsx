@@ -21,11 +21,13 @@ import {
 } from "@/lib/uicBuildings";
 import type { FilterMode, LngLat, MapEvent, PickScope } from "@/lib/types";
 import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from "@/lib/firebase";
+import { useAuth } from "@/hooks/useAuth";
 
 /** Default reference location (UIC campus) for distance calculations. */
 const DEFAULT_SELECTED: LngLat = { lng: -87.6477, lat: 41.8719 };
 
 export default function Home() {
+  const { user, isUicUser } = useAuth();
   const accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const [selectedLocation, setSelectedLocation] =
@@ -161,6 +163,8 @@ export default function Home() {
           details: r.details,
           extraInfo: r.extraInfo,
           organizer: r.organizer,
+          createdBy: r.createdBy,
+          createdByName: r.createdByName,
         })) as MapEvent[]
       );
     });
@@ -257,7 +261,9 @@ export default function Home() {
       details: newDetails.trim() || undefined,
       extraInfo: newExtraInfo.trim() || undefined,
       organizer: newOrganizer.trim() || undefined,
-    }).catch(() => setFormError("Could not save event. Try again."));
+    }).catch((err) => {
+      setFormError(err instanceof Error ? err.message : "Could not save event. Try again.");
+    });
     setNewTitle("");
     setNewDateTime("");
     setNewAddress("");
@@ -306,7 +312,9 @@ export default function Home() {
       organizer: editOrganizer.trim() || undefined,
     })
       .then(() => setIsEditingEvent(false))
-      .catch(() => setEditError("Could not save changes. Try again."));
+      .catch((err) => {
+        setEditError(err instanceof Error ? err.message : "Could not save changes. Try again.");
+      });
   };
 
   return (
@@ -466,7 +474,11 @@ export default function Home() {
             onCancelEdit={() => setIsEditingEvent(false)}
             onSaveEdit={handleSaveEdit}
             onDelete={() => {
-              void deleteEvent(activeEvent!.id).then(() => setActiveEvent(null));
+              void deleteEvent(activeEvent!.id)
+                .then(() => setActiveEvent(null))
+                .catch((err) => {
+                  setEditError(err instanceof Error ? err.message : "Could not delete event. Try again.");
+                });
             }}
           />
         ) : null}

@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import type { UicBuildingSuggestion } from "@/lib/uicBuildings";
+import { useAuth } from "@/hooks/useAuth";
 
 type Props = {
   title: string;
@@ -45,6 +46,7 @@ export function EventForm({
   onOrganizerChange,
   onSubmit,
 }: Props) {
+  const { user, isUicUser, loading: authLoading } = useAuth();
   const dateInputRef = React.useRef<HTMLInputElement | null>(null);
   const [dateFocused, setDateFocused] = React.useState(false);
   const [showSuggestions, setShowSuggestions] = React.useState(true);
@@ -58,6 +60,32 @@ export function EventForm({
     dateInputRef.current?.blur();
     setDateFocused(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
+        <div className="text-base font-semibold text-zinc-900">Add event</div>
+        <div className="mt-4 text-sm text-zinc-500">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user || !isUicUser) {
+    return (
+      <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
+        <div className="text-base font-semibold text-zinc-900">Add event</div>
+        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
+          <div className="text-sm font-medium text-zinc-700">
+            Sign in to add events
+          </div>
+          <div className="mt-2 text-xs text-zinc-500">
+            You must sign in with a @uic.edu email address to create events.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:rounded-2xl sm:p-6">
       <div className="text-base font-semibold text-zinc-900">Add event</div>
