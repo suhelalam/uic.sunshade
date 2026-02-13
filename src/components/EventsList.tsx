@@ -34,7 +34,7 @@ export function EventsList({
 
   return (
     <div className="space-y-1">
-      {events.slice(0, 20).map((e) => {
+      {events.map((e) => {
         const d = new Date(e.dateISO);
         const dist = haversineMiles(selectedLocation, e.location);
         const isPast = d < new Date();

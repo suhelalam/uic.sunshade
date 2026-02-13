@@ -508,12 +508,12 @@ export default function Home() {
               />
             </aside>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0 h-full">
-              <section className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0 max-h-[58vh] overflow-hidden">
+              <section className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0 overflow-hidden">
                 <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
                   Upcoming events
                 </h2>
-                <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                   <EventsList
                     events={upcomingEvents}
                     selectedLocation={selectedLocation}
@@ -542,11 +542,11 @@ export default function Home() {
                   />
                 </div>
               </section>
-              <section className="rounded-xl border border-zinc-200/60 bg-zinc-50/80 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0">
+              <section className="rounded-xl border border-zinc-200/60 bg-zinc-50/80 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0 overflow-hidden">
                 <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
                   Past events
                 </h2>
-                <div className="min-h-0 flex-1 overflow-y-auto">
+                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
                   <EventsList
                     events={pastEvents}
                     selectedLocation={selectedLocation}
