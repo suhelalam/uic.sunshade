@@ -7,11 +7,12 @@
 
 import * as React from "react";
 import { EventsMap } from "@/components/EventsMap";
-import { EventForm } from "@/components/EventForm";
 import { EventsFilter } from "@/components/EventsFilter";
-import { EventsList } from "@/components/EventsList";
 import { EventModal } from "@/components/EventModal";
+import { EventsPanel, type PanelTab } from "@/components/EventsPanel";
 import { HeaderBar } from "@/components/HeaderBar";
+import { Footer } from "@/components/Footer";
+import { Toast } from "@/components/Toast";
 import { filterEvents } from "@/lib/filters";
 import { geocodeBuilding } from "@/lib/geocode";
 import {
@@ -163,6 +164,9 @@ export default function Home() {
   const [editError, setEditError] = React.useState("");
   const [expandedListEventId, setExpandedListEventId] = React.useState<string | null>(null);
   const [showDeleteConfirmForId, setShowDeleteConfirmForId] = React.useState<string | null>(null);
+  const [panelTab, setPanelTab] = React.useState<PanelTab>("upcoming");
+  const [panelCollapsed, setPanelCollapsed] = React.useState(false);
+  const [toastMessage, setToastMessage] = React.useState<string | null>(null);
 
   const [isResolvingLocation, setIsResolvingLocation] = React.useState(false);
 
@@ -260,6 +264,16 @@ export default function Home() {
       .sort((a, b) => new Date(b.dateISO).getTime() - new Date(a.dateISO).getTime());
   }, [events]);
 
+  const eventsTodayCount = React.useMemo(() => {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const todayEnd = todayStart + 24 * 60 * 60 * 1000;
+    return filteredEvents.filter((e) => {
+      const t = new Date(e.dateISO).getTime();
+      return t >= todayStart && t < todayEnd;
+    }).length;
+  }, [filteredEvents]);
+
   const handleAddEvent = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setFormError("");
@@ -320,6 +334,8 @@ export default function Home() {
       setNewDetails("");
       setNewExtraInfo("");
       setNewOrganizer("");
+      setPanelTab("upcoming");
+      setToastMessage("Event added");
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Could not save event. Try again.");
     }
@@ -409,68 +425,95 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] overflow-x-hidden">
-      <div className="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <div className="min-h-screen max-h-screen bg-[#F2F7EB] overflow-hidden flex flex-col">
+      <header className="shrink-0">
         <HeaderBar accessToken={accessToken} />
-
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-1 lg:grid-rows-[auto_1fr]">
-          {/* Row 1: Map full width */}
-          <div className="min-w-0 lg:col-span-1">
-            <div className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
-              <EventsMap
-                accessToken={accessToken}
+      </header>
+      <main className="flex-1 min-h-0 flex flex-col overflow-hidden" aria-label="Campus map and events">
+        <section className="relative flex-1 min-h-[300px] overflow-hidden" aria-label="Map and events panel">
+          <div className="absolute inset-0 overflow-hidden">
+            <EventsMap
+              heroMode
+              accessToken={accessToken}
+              selectedLocation={selectedLocation}
+              onSelectedLocationChange={(loc) => {
+                setSelectedLocation(loc);
+                setLocationError(null);
+              }}
+              focusLocation={focusLocation}
+              events={filteredEvents}
+              onUseMyLocation={handleUseMyLocation}
+              isLocating={isLocating}
+              locationError={locationError}
+              onEventSelect={(e) => {
+                setActiveEvent(e);
+                setSelectedLocation(e.location);
+                setFocusLocation(e.location);
+                setIsEditingEvent(false);
+              }}
+              onMapClick={() => setActiveEvent(null)}
+              filterOpen={filterOpen}
+              onFilterToggle={() => setFilterOpen((prev) => !prev)}
+              filterMode={filterMode}
+              onFilterModeChange={setFilterMode}
+              pickScope={pickScope}
+              onPickScopeChange={setPickScope}
+              pickYear={pickYear}
+              onPickYearChange={setPickYear}
+              pickMonth={pickMonth}
+              onPickMonthChange={setPickMonth}
+              pickDate={pickDate}
+              onPickDateChange={setPickDate}
+              onPickDateApply={() => {
+                if (pickScope === "date") setPickDateApplied(pickDate);
+              }}
+              enableDistanceFilter={enableDistanceFilter}
+              onEnableDistanceFilterChange={setEnableDistanceFilter}
+              maxDistanceMiles={maxDistanceMiles}
+              onMaxDistanceMilesChange={setMaxDistanceMiles}
+              totalShown={filteredEvents.length}
+              eventsTodayCount={eventsTodayCount}
+            />
+          </div>
+          {!panelCollapsed ? (
+            <aside className="absolute z-10 left-0 right-0 bottom-0 top-auto h-[50vh] max-h-[50vh] rounded-t-2xl shadow-[0_8px_32px_rgba(0,30,98,0.12)] pb-[env(safe-area-inset-bottom)] md:h-full md:max-h-none md:rounded-none md:left-2 md:right-auto md:top-2 md:bottom-2 md:w-[min(340px,calc(100vw-2rem))] md:pb-0 lg:left-4 lg:top-4 lg:bottom-4 lg:w-[380px]">
+              <div className="h-full min-h-0 max-h-[50vh] md:max-h-[calc(100vh-5rem)] overflow-hidden shadow-[0_8px_32px_rgba(0,30,98,0.12)]">
+                <EventsPanel
+                  activeTab={panelTab}
+                  onTabChange={setPanelTab}
+                  onCollapse={() => setPanelCollapsed(true)}
+                upcomingEvents={upcomingEvents}
+                pastEvents={pastEvents}
                 selectedLocation={selectedLocation}
-                onSelectedLocationChange={(loc) => {
-                  setSelectedLocation(loc);
-                  setLocationError(null);
-                }}
-                focusLocation={focusLocation}
-                events={filteredEvents}
-                onUseMyLocation={handleUseMyLocation}
-                isLocating={isLocating}
-                locationError={locationError}
-                onEventSelect={(e) => {
+                expandedListEventId={expandedListEventId}
+                onExpandToggle={(e) => setExpandedListEventId((id) => (id === e.id ? null : e.id))}
+                onSelectEvent={(e) => {
                   setActiveEvent(e);
                   setSelectedLocation(e.location);
                   setFocusLocation(e.location);
                   setIsEditingEvent(false);
                 }}
-                onMapClick={() => setActiveEvent(null)}
-                filterOpen={filterOpen}
-                onFilterToggle={() => setFilterOpen((prev) => !prev)}
-                filterMode={filterMode}
-                onFilterModeChange={setFilterMode}
-                pickScope={pickScope}
-                onPickScopeChange={setPickScope}
-                pickYear={pickYear}
-                onPickYearChange={setPickYear}
-                pickMonth={pickMonth}
-                onPickMonthChange={setPickMonth}
-                pickDate={pickDate}
-                onPickDateChange={setPickDate}
-                onPickDateApply={() => {
-                  if (pickScope === "date") setPickDateApplied(pickDate);
+                onEditEvent={(e, source) => {
+                  setActiveEvent(e);
+                  setSelectedLocation(e.location);
+                  setFocusLocation(e.location);
+                  setIsEditingEvent(source === "upcoming" ? true : new Date(e.dateISO) >= new Date());
                 }}
-                enableDistanceFilter={enableDistanceFilter}
-                onEnableDistanceFilterChange={setEnableDistanceFilter}
-                maxDistanceMiles={maxDistanceMiles}
-                onMaxDistanceMilesChange={setMaxDistanceMiles}
-                totalShown={filteredEvents.length}
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Add events (left) | Upcoming + Past lists (right) — same row height, lists scroll within */}
-          <div className="min-w-0 grid gap-4 sm:gap-6 lg:grid-cols-[360px_1fr] lg:items-stretch">
-            <aside className="space-y-6">
-              <EventForm
-                title={newTitle}
-                dateTime={newDateTime}
-                address={newAddress}
-                roomNumber={newRoomNumber}
-                details={newDetails}
-                extraInfo={newExtraInfo}
-                organizer={newOrganizer}
+                onDeleteEvent={(e) => {
+                  setActiveEvent(e);
+                  setSelectedLocation(e.location);
+                  setFocusLocation(e.location);
+                  setIsEditingEvent(false);
+                  setShowDeleteConfirmForId(e.id);
+                }}
+                currentUserId={user?.uid ?? null}
+                newTitle={newTitle}
+                newDateTime={newDateTime}
+                newAddress={newAddress}
+                newRoomNumber={newRoomNumber}
+                newDetails={newDetails}
+                newExtraInfo={newExtraInfo}
+                newOrganizer={newOrganizer}
                 formError={formError}
                 buildingSuggestions={buildingSuggestions}
                 isResolvingLocation={isResolvingLocation}
@@ -505,79 +548,27 @@ export default function Home() {
                 onExtraInfoChange={setNewExtraInfo}
                 onOrganizerChange={setNewOrganizer}
                 onSubmit={handleAddEvent}
-              />
+                />
+              </div>
             </aside>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-0 max-h-[58vh] overflow-hidden">
-              <section className="rounded-xl border border-zinc-200/60 bg-white p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0 overflow-hidden">
-                <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
-                  Upcoming events
-                </h2>
-                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-                  <EventsList
-                    events={upcomingEvents}
-                    selectedLocation={selectedLocation}
-                    expandedId={expandedListEventId}
-                    onExpandToggle={(e) => setExpandedListEventId((id) => (id === e.id ? null : e.id))}
-                    onSelect={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(false);
-                    }}
-                    onEdit={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(true);
-                    }}
-                    onDelete={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(false);
-                      setShowDeleteConfirmForId(e.id);
-                    }}
-                    currentUserId={user?.uid ?? null}
-                  />
-                </div>
-              </section>
-              <section className="rounded-xl border border-zinc-200/60 bg-zinc-50/80 p-3 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-4 flex flex-col min-h-0 overflow-hidden">
-                <h2 className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-2 shrink-0">
-                  Past events
-                </h2>
-                <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-                  <EventsList
-                    events={pastEvents}
-                    selectedLocation={selectedLocation}
-                    expandedId={expandedListEventId}
-                    onExpandToggle={(e) => setExpandedListEventId((id) => (id === e.id ? null : e.id))}
-                    onSelect={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(false);
-                    }}
-                    onEdit={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(new Date(e.dateISO) >= new Date());
-                    }}
-                    onDelete={(e) => {
-                      setActiveEvent(e);
-                      setSelectedLocation(e.location);
-                      setFocusLocation(e.location);
-                      setIsEditingEvent(false);
-                      setShowDeleteConfirmForId(e.id);
-                    }}
-                    currentUserId={user?.uid ?? null}
-                  />
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setPanelCollapsed(false)}
+              className="absolute left-3 bottom-20 z-10 flex items-center gap-2 rounded-xl border border-[#001E62]/15 bg-white/95 px-3 py-2.5 text-sm font-semibold text-[#001E62] shadow-[0_4px_20px_rgba(0,30,98,0.12)] backdrop-blur-sm transition hover:bg-[#F2F7EB]/90 hover:border-[#001E62]/25 md:bottom-auto md:top-3 md:left-3 lg:left-4 lg:top-4"
+              aria-label="Show events panel"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+              </svg>
+              Events {upcomingEvents.length > 0 ? `(${upcomingEvents.length})` : ""}
+            </button>
+          )}
+        </section>
+      </main>
+      {toastMessage ? (
+        <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+      ) : null}
 
         {activeEvent ? (
           <EventModal
@@ -622,7 +613,7 @@ export default function Home() {
             showDeleteConfirmInitially={activeEvent?.id === showDeleteConfirmForId}
           />
         ) : null}
-      </div>
+      <Footer />
     </div>
   );
 }

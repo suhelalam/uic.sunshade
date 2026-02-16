@@ -1,33 +1,59 @@
 /**
- * Global styles: Tailwind, Mapbox CSS, design tokens, and base typography.
+ * UIC Digital Design System
+ * Based on brand.uic.edu/visual-identity and UIC Red multisite patterns.
+ *
+ * DESIGN LOGIC:
+ * - Navy (#001E62): Institutional, structural — headers, footers, nav, section titles, borders.
+ * - Red (#D50032): Intentional, action — primary CTAs, links, active states, highlights only.
+ * - Steel Gray (#333333): Body copy and secondary text (readability).
+ * - Expo White (#F2F7EB): Light section backgrounds (alternating sections).
+ * - White: Primary content areas for maximum readability.
+ *
+ * No red+navy text/background combo (accessibility). No gradients or flashy effects.
  */
+
 @import "tailwindcss";
 @import "mapbox-gl/dist/mapbox-gl.css";
-/* @import "@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css"; */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --accent: #FF385C;
-  --accent-hover: #E31C5F;
-  --surface: #fafafa;
-  --card: #ffffff;
+  /* Primary — structural */
+  --uic-navy: #001E62;
+  --uic-navy-dark: #00154a;
+  /* Primary — action */
+  --uic-red: #D50032;
+  --uic-red-dark: #b00028;
+  /* Secondary */
+  --uic-steel: #333333;
+  --uic-expo-white: #F2F7EB;
+  --uic-chicago-blue: #41B6E6;
+  --uic-gold: #FFBF3F;
+  /* Roles */
+  --uic-bg-page: #F2F7EB;
+  --uic-bg-content: #ffffff;
+  --uic-bg-section-alt: #F2F7EB;
+  --uic-text-primary: #333333;
+  --uic-text-heading: #001E62;
+  --uic-border: rgba(0, 30, 98, 0.12);
+  --uic-border-strong: rgba(0, 30, 98, 0.2);
+  /* Spacing scale (4px base) */
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.25rem;  /* 20px */
+  --space-6: 1.5rem;   /* 24px */
+  --space-8: 2rem;     /* 32px */
+  --space-10: 2.5rem;  /* 40px */
+  --space-12: 3rem;    /* 48px */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    Roboto, "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --color-uic-navy: var(--uic-navy);
+  --color-uic-red: var(--uic-red);
+  --color-uic-steel: var(--uic-steel);
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 html {
@@ -36,15 +62,24 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--uic-bg-page);
+  color: var(--uic-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-/* Smooth transitions for interactive elements */
-input, button, select, textarea, [role="button"] {
+/* Touch-friendly scroll (e.g. events list on mobile) */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* UIC component patterns */
+input,
+button,
+select,
+textarea,
+[role="button"] {
   transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }

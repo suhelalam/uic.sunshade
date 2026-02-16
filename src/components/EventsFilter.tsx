@@ -52,7 +52,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("all")}
           className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "all"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -63,7 +63,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("today")}
           className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "today"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -74,7 +74,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("this-week")}
           className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "this-week"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -85,7 +85,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("next-week")}
           className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "next-week"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -96,7 +96,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("this-month")}
           className={`rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "this-month"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -107,7 +107,7 @@ function FilterContent({
           onClick={() => onFilterModeChange("pick")}
           className={`col-span-2 rounded-lg border px-2.5 py-2 text-left transition-colors ${
             filterMode === "pick"
-              ? "border-[#FF385C] bg-[#FF385C] text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)]"
+              ? "border-[#D50032] bg-[#D50032] text-white shadow-sm"
               : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
           }`}
         >
@@ -204,7 +204,7 @@ function FilterContent({
             <button
               type="button"
               onClick={onPickDateApply}
-              className="rounded-lg bg-[#FF385C] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_2px_4px_rgba(255,56,92,0.25)] transition hover:bg-[#E31C5F] disabled:opacity-50 disabled:shadow-none"
+              className="rounded-lg bg-[#D50032] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#b00028] disabled:opacity-50 disabled:shadow-none"
               disabled={pickScope !== "date"}
             >
               Search
@@ -233,7 +233,7 @@ function FilterContent({
             max={50}
             value={maxDistanceMiles}
             onChange={(e) => onMaxDistanceMilesChange(Number(e.target.value))}
-            className="w-full accent-[#FF385C] transition-opacity"
+            className="w-full accent-[#D50032] transition-opacity"
             disabled={!enableDistanceFilter}
           />
           <div className="w-20 text-right text-xs font-medium tabular-nums text-zinc-800">
@@ -254,6 +254,8 @@ function FilterContent({
 
 type Props = {
   variant?: "inline" | "dropdown";
+  /** When dropdown: optional class for the trigger button (e.g. to match a control strip) */
+  dropdownButtonClassName?: string;
   filterOpen: boolean;
   onToggle: () => void;
   filterMode: FilterMode;
@@ -276,6 +278,7 @@ type Props = {
 
 export function EventsFilter({
   variant = "inline",
+  dropdownButtonClassName,
   filterOpen,
   onToggle,
   filterMode,
@@ -316,17 +319,20 @@ export function EventsFilter({
   );
 
   if (variant === "dropdown") {
+    const triggerClass =
+      dropdownButtonClassName ??
+      "flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 hover:border-zinc-300 sm:min-h-0 sm:px-3 sm:py-2";
     return (
       <div className="relative">
         <button
           type="button"
           onClick={onToggle}
-          className="flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-zinc-50 hover:border-zinc-300 sm:min-h-0 sm:px-3 sm:py-2"
+          className={triggerClass}
           title={`Filter: ${getFilterModeLabel(filterMode)}`}
           aria-label={`Filter: ${getFilterModeLabel(filterMode)}`}
         >
-          <span className="text-[#FF385C]">{filterIcon("md")}</span>
-          <span className="text-xs font-medium text-zinc-700">Filters</span>
+          <span className="text-[#D50032]">{filterIcon("md")}</span>
+          <span className="text-xs font-medium text-[#333333]">Filters</span>
         </button>
         {filterOpen ? (
           <>
@@ -369,7 +375,7 @@ export function EventsFilter({
         className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50/80"
       >
         <span className="flex items-center gap-2">
-          <span className="text-[#FF385C]">{filterIcon("sm")}</span>
+          <span className="text-[#D50032]">{filterIcon("sm")}</span>
           Filter
         </span>
         <span className="text-xs text-zinc-500">{getFilterModeLabel(filterMode)}</span>

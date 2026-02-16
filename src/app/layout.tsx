@@ -1,14 +1,9 @@
 /**
- * Root layout: metadata, Inter font, and global styles.
+ * Root layout: metadata and global styles.
+ * Typography uses UIC-style stack from globals.css (Helvetica Neue / Arial).
  */
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -32,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body>{children}</body>
     </html>
   );
 }

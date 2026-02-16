@@ -86,35 +86,31 @@ export function EventForm({
 
   if (authLoading) {
     return (
-      <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
-        <div className="text-base font-semibold text-zinc-900">Add event</div>
-        <div className="mt-4 text-sm text-zinc-500">Loading...</div>
+      <div className="rounded-lg border border-[#001E62]/15 bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="text-base font-bold text-[#001E62]">Add event</h2>
+        <div className="mt-4 text-sm text-[#333333]/70">Loading...</div>
       </div>
     );
   }
 
   if (!user || !isUicUser) {
     return (
-      <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] sm:rounded-2xl sm:p-6">
-        <div className="text-base font-semibold text-zinc-900">Add event</div>
-        <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-6 text-center">
-          <div className="text-sm font-medium text-zinc-700">
-            Sign in to add events
-          </div>
-          <div className="mt-2 text-xs text-zinc-500">
-            You must sign in with a @uic.edu email address to create events.
-          </div>
+      <div className="rounded-lg border border-[#001E62]/15 bg-white p-4 shadow-sm sm:p-6">
+        <h2 className="text-base font-bold text-[#001E62]">Add event</h2>
+        <div className="mt-4 rounded-lg border border-[#001E62]/15 bg-[#F2F7EB]/60 px-4 py-6 text-center">
+          <div className="text-sm font-medium text-[#333333]">Sign in to add events</div>
+          <div className="mt-2 text-xs text-[#333333]/70">You must sign in with a @uic.edu email address to create events.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-zinc-200/60 bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)] transition-shadow hover:shadow-[0_8px_32px_rgba(0,0,0,0.08)] sm:rounded-2xl sm:p-6">
-      <div className="text-base font-semibold text-zinc-900">Add event</div>
-      <div className="mt-1 text-xs leading-relaxed text-zinc-500">
+    <div className="rounded-lg border border-[#001E62]/15 bg-white p-4 shadow-sm sm:p-6">
+      <h2 className="text-base font-bold text-[#001E62]">Add event</h2>
+      <p className="mt-1 text-xs leading-relaxed text-[#333333]/70">
         Search for a UIC building—only campus locations are allowed.
-      </div>
+      </p>
 
       <form
         className="mt-5 space-y-4"
@@ -129,7 +125,7 @@ export function EventForm({
             value={title}
             onChange={(e) => onTitleChange(e.target.value)}
             placeholder="e.g. Food truck meetup"
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
         </div>
         <div>
@@ -143,7 +139,7 @@ export function EventForm({
               value={dateTime}
               onChange={(e) => onDateTimeChange(e.target.value)}
               onFocus={() => setDateFocused(true)}
-              className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+              className="flex-1 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
             />
             {dateFocused && (
               <button
@@ -168,7 +164,7 @@ export function EventForm({
               setShowSuggestions(true);
             }}
             placeholder="Search for a UIC building"
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
           {isResolvingLocation ? (
             <div className="mt-1 text-xs text-zinc-500">
@@ -206,7 +202,7 @@ export function EventForm({
             value={roomNumber}
             onChange={(e) => onRoomNumberChange(e.target.value)}
             placeholder="e.g. 201, 3rd Floor, Room A"
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
         </div>
 
@@ -237,7 +233,7 @@ export function EventForm({
             onChange={(e) => onDetailsChange(e.target.value)}
             placeholder="Short description about the event"
             rows={3}
-            className="mt-1.5 w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full resize-none rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
         </div>
 
@@ -247,7 +243,7 @@ export function EventForm({
             value={extraInfo}
             onChange={(e) => onExtraInfoChange(e.target.value)}
             placeholder="Dress code, parking, RSVP, etc."
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
         </div>
 
@@ -257,19 +253,19 @@ export function EventForm({
             value={organizer}
             onChange={(e) => onOrganizerChange(e.target.value)}
             placeholder="e.g. Student Org Name"
-            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#FF385C]/50 focus:ring-2 focus:ring-[#FF385C]/15"
+            className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 outline-none transition-colors focus:border-[#001E62]/50 focus:ring-2 focus:ring-[#001E62]/15"
           />
         </div>
 
         {formError ? (
-          <div ref={formErrorRef} className="rounded-xl border border-rose-200/80 bg-rose-50/90 px-3 py-2.5 text-xs text-rose-700" role="alert">
+          <div ref={formErrorRef} className="rounded-lg border border-[#D50032]/30 bg-[#D50032]/10 px-3 py-2.5 text-xs text-[#b00028]" role="alert">
             {formError}
           </div>
         ) : null}
 
         <button
           type="submit"
-          className="inline-flex w-full items-center justify-center rounded-xl bg-[#FF385C] px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_8px_rgba(255,56,92,0.3)] transition hover:bg-[#E31C5F] hover:shadow-[0_4px_12px_rgba(255,56,92,0.35)] active:scale-[0.99]"
+          className="inline-flex w-full items-center justify-center rounded-lg bg-[#D50032] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#b00028] active:scale-[0.99]"
         >
           Add event
         </button>

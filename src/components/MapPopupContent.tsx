@@ -50,7 +50,7 @@ export function MapPopupContent({ event, onViewDetails }: Props) {
             e.stopPropagation();
             onViewDetails();
           }}
-          className="mt-2 block text-[11px] font-semibold text-[#FF385C] hover:underline"
+          className="mt-2 block text-[11px] font-semibold text-[#D50032] hover:underline"
         >
           View details
         </button>
