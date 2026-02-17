@@ -9,5 +9,29 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attendees', 'attendCount']));
       allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
     }
+    // Feed: posts, likes, comments, shares, users (campus social)
+    match /campuses/{campus}/feedPosts/{postId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.createdBy == request.auth.uid || resource.data.createdBy != request.auth.uid);
+      allow delete: if request.auth != null && resource.data.createdBy == request.auth.uid;
+    }
+    match /campuses/{campus}/feedLikes/{likeId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+    match /campuses/{campus}/feedComments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
+    match /campuses/{campus}/feedShares/{shareId} {
+      allow read, write: if request.auth != null;
+    }
+    match /campuses/{campus}/feedUsers/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
   }
 }

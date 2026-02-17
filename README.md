@@ -10,6 +10,7 @@ Interactive event map for the UIC campus. Add, filter, and view events on a Mapb
 - **Past events** – Separate section listing past events
 - **Use my location** – Get your location for distance calculations
 - **Edit & delete** – Edit events in a modal; delete with Yes/No confirmation
+- **Feed** – Campus social feed (Instagram-style): post videos, like, comment, share with friends or via link; view profiles. Only @uic.edu users can post. Header tab: **Map** | **Feed**.
 
 ## Quick start
 
@@ -78,7 +79,8 @@ src/
 
 ## Data
 
-- **Events** – Stored in React state only (in-memory). To persist, add a backend (Firebase, API + DB, etc.).
+- **Events** – Stored in Firebase Firestore (`campuses/uic/events`).
+- **Feed** – Firestore under `campuses/uic/`: `feedPosts`, `feedLikes`, `feedComments`, `feedShares`, `feedUsers`. Videos in Storage under `feed/{uid}/{timestamp}-filename`. Rules for feed are in `storage.rules` and `firestore.rules`; **deploy them** (e.g. Firebase Console → Storage/Firestore → Rules, or `firebase deploy --only storage,firestore`) so video upload and feed posts work.
 - **UIC buildings** – From UIC FIMWeb Campus Visitor Map; addresses for East Campus (60607), West Campus (60612), Law (60604), and 5525 Pulaski (60632).
 
 ## Requirements

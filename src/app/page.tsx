@@ -10,7 +10,8 @@ import { EventsMap } from "@/components/EventsMap";
 import { EventsFilter } from "@/components/EventsFilter";
 import { EventModal } from "@/components/EventModal";
 import { EventsPanel, type PanelTab } from "@/components/EventsPanel";
-import { HeaderBar } from "@/components/HeaderBar";
+import { HeaderBar, type MainView } from "@/components/HeaderBar";
+import { FeedView } from "@/components/feed/FeedView";
 import { Footer } from "@/components/Footer";
 import { Toast } from "@/components/Toast";
 import { filterEvents } from "@/lib/filters";
@@ -167,6 +168,7 @@ export default function Home() {
   const [panelTab, setPanelTab] = React.useState<PanelTab>("upcoming");
   const [panelCollapsed, setPanelCollapsed] = React.useState(false);
   const [toastMessage, setToastMessage] = React.useState<string | null>(null);
+  const [activeView, setActiveView] = React.useState<MainView>("map");
 
   const [isResolvingLocation, setIsResolvingLocation] = React.useState(false);
 
@@ -427,9 +429,18 @@ export default function Home() {
   return (
     <div className="min-h-screen max-h-screen bg-[#F2F7EB] overflow-hidden flex flex-col">
       <header className="shrink-0">
-        <HeaderBar accessToken={accessToken} />
+        <HeaderBar
+          accessToken={accessToken}
+          activeView={activeView}
+          onViewChange={setActiveView}
+        />
       </header>
       <main className="flex-1 min-h-0 flex flex-col overflow-hidden" aria-label="Campus map and events">
+        {activeView === "feed" ? (
+          <div className="flex-1 min-h-0 overflow-hidden" aria-label="Campus feed">
+            <FeedView />
+          </div>
+        ) : (
         <section className="relative flex-1 min-h-[300px] overflow-hidden" aria-label="Map and events panel">
           <div className="absolute inset-0 overflow-hidden">
             <EventsMap
@@ -565,6 +576,7 @@ export default function Home() {
             </button>
           )}
         </section>
+        )}
       </main>
       {toastMessage ? (
         <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
